@@ -67,6 +67,7 @@ router.get('/:user_id/:event_id', function (req, res, next) {
                   knex('discount_codes_events')
                     .select(['timesUsedThisEvent'])
                     .where('discountCodeId', discountCode.id)
+                    .andWhere('eventsId', req.params.event_id)
                     .first()
                     .then((discountCodeEvent) => {
                       if (discountCodeEvent && discountCodeEvent.timesUsedThisEvent > 0) {
