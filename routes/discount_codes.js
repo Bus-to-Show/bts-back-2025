@@ -169,7 +169,7 @@ router.patch('/', function (req, res, next) {
       .select('*')
       .where('discountCode', discountCode)
       .then((match) => {
-        if (!match) {
+        if (!match || !match.remainingUses) {
           return res.status(400).json({ message: 'This code is not in our database.' })
         }
         else if (match) {
