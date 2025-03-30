@@ -15,13 +15,18 @@ Heroku dashboard: https://dashboard.heroku.com/apps/blooming-fortress-13049/
 
 * Node v16.20
 * npm v8.19
-* PostgreSQL v16.8
+* One of:
+    a. PostgreSQL v16.8
+    b. Docker with Compose v2
 
 ### Setup
 
 1. Install the dependencies with `npm install`
 
-2. Create a database in pgAdmin/DBeaver/whatever
+2. Create the database
+
+   a. Using pgAdmin/DBeaver/whatever
+   b. Using `docker compose up`
 
 3. Create a file named `.env` in the project root directory with these contents:
 
