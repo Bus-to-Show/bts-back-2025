@@ -8,7 +8,7 @@ const whitelist = process.env.ORIGIN_URL.split(' ')
 // Parse the environment variable into an object
 const parse = require("pg-connection-string").parse;
 const pgconfig = parse(process.env.DATABASE_URL);
-pgconfig.ssl = { rejectUnauthorized: false };
+
 const Pool = require('pg').Pool
 const pool = new Pool(pgconfig)
 
