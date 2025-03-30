@@ -1,5 +1,4 @@
 const nodemailer = require('nodemailer');
-const { head } = require('./app');
 const EMAIL_PASS = process.env.EMAIL_PASS
 const generateReminderEmailArray = require('./generateReminderEmailArray').generateReminderEmailArray
 
