@@ -1,10 +1,11 @@
-
-exports.up = function(knex) {
-    //RAW QUERY::
-   // `ALTER TABLE events ADD COLUMN doors_time TIME DEFAULT '00:00'`
-
+exports.up = (knex) => {
+  return knex.schema.table('events', (t) => {
+    t.string('doors_time', '8').notNullable().defaultTo('00:00');
+  });
 };
 
-exports.down = function(knex) {
-  
+exports.down = (knex) => {
+  return knex.schema.table('events', (t) => {
+    t.dropColumn('doors_time');
+  });
 };
