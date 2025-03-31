@@ -28,7 +28,7 @@ var reminderEmails = require('./reminderEmails')
 var reservationsRouter = require('./routes/reservations');
 var usersRouter = require('./routes/users')
 var apiRouter = require('./routes/api').router
-const stripeSync = require('./routes/stripe-sync')
+
 var app = express();
 var whitelist = process.env.ORIGIN_URL.split(' ')
 var corsOptions = {
@@ -67,7 +67,6 @@ app.use(`/pickup_parties`, pickupPartiesRouter);
 app.use(`/manage-parties`, managePartiesRouter)
 app.use(`/manage-reservations`, manageReservationsRouter)
 app.use(`/reservations`, reservationsRouter);
-app.use('/stripe-sync', stripeSync);
 app.use('/products', productsRouter);
 app.use('/purchases', purchasesRouter);
 
