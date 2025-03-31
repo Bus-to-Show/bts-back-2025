@@ -15,18 +15,11 @@ const stripe = require('stripe')(stripeSecretKey);
 const jwt = require('jsonwebtoken')
 const JWT_KEY = process.env.JWT_KEY
 const verifyToken = require('./api').verifyToken
-const whitelist = process.env.ORIGIN_URL.split(' ')
 
 
 
 //List (get all of the resource)
 router.get('/', verifyToken, function (req, res, next) {
-  (whitelist.indexOf(req.headers.origin) === -1)
-  ?
-  setTimeout(() => {
-        res.sendStatus(404)
-      }, 2000)
-  :
     jwt.verify(req.token, JWT_KEY, (err, authData) => {
       if(err){
         res.sendStatus(403)
@@ -45,12 +38,6 @@ router.get('/', verifyToken, function (req, res, next) {
 
 //Get All reservations associated with a userId (passed in as req.params.id)
 router.get('/:id', function(req, res, next){
-(whitelist.indexOf(req.headers.origin) === -1)
-    ?
-    setTimeout(() => {
-          res.sendStatus(404)
-        }, 2000)
-    :
   knex('orders')
   .select('orderedByFirstName', 'orderedByLastName', 'orderedByEmail', 'userId', 'orderId', 'willCallFirstName', 'willCallLastName', 'status', 'lastBusDepartureTime', 'firstBusLoadTime', 'city', 'locationName', 'streetAddress', 'date', 'venue', 'headliner', 'support1', 'support2', 'support3', 'headlinerBio', 'headlinerImgLink' )
   .join('reservations', 'orders.id', '=', 'reservations.orderId')
@@ -131,12 +118,6 @@ router.post('/', function (req, res, next) {
     return null
   }
 
-  (whitelist.indexOf(req.headers.origin) === -1)
-  ?
-    setTimeout(() => {
-          res.sendStatus(404)
-        }, 2000)
-  :
     knex('orders')
     .insert({
       userId: userId,
@@ -204,12 +185,6 @@ router.post('/', function (req, res, next) {
 
 //PATCH ROUTE ORDERS
 router.patch('/:id', function(req, res, next){
-  (whitelist.indexOf(req.headers.origin) === -1)
-  ?
-  setTimeout(() => {
-        res.sendStatus(404)
-      }, 2000)
-  :
   knex('orders')
     .where('id', req.params.id)
     .update(req.body)
