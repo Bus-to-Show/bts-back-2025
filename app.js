@@ -30,24 +30,26 @@ var usersRouter = require('./routes/users')
 var apiRouter = require('./routes/api').router
 
 var app = express();
-var whitelist = process.env.ORIGIN_URL.split(' ')
-var corsOptions = {
-  origin: function (origin, callback) {
-    if (whitelist.indexOf(origin) !== -1) {
-      callback(null, true)
-    } else {
-      callback(new Error('Not allowed by CORS'))
-    }
-  },
-  optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
-}
 app.use(helmet())
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  next();
-})
-app.use(cors(corsOptions))
+
+if (process.env.NODE_ENV == 'production') {
+  var whitelist = process.env.ORIGIN_URL.split(' ');
+
+  var corsOptions = {
+    allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept',
+    credentials: true,
+    origin: function (origin, callback) {
+      if (whitelist.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+  };
+
+  app.use(cors(corsOptions));
+}
 
 app.use(logger('dev'));
 app.use(express.json());
