@@ -1,6 +1,5 @@
 'use strict';
 const express = require('express');
-const { update } = require('../knex');
 const router = express.Router();
 
 // Parse the environment variable into an object

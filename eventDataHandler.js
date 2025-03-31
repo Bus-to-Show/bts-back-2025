@@ -1,6 +1,5 @@
 var axios = require('axios')
 const knex = require('./knex.js')
-const time = require('data-seed/src/seed/time.js');
 const lastFmApiKey = process.env.LASTFM_KEY
 const songKickApiKey = process.env.SONGKICK_KEY
 const ticketMasterApiKey = process.env.TICKETMASTER_APIKEY

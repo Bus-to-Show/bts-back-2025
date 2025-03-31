@@ -2,9 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const cookieParser = require('cookie-parser')
 const jwt = require('jsonwebtoken');
-const { user } = require('pg/lib/defaults');
 const JWT_KEY = process.env.JWT_KEY
 const parse = require("pg-connection-string").parse;
 const pgconfig = parse(process.env.DATABASE_URL);

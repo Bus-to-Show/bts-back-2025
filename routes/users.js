@@ -1,7 +1,6 @@
 'use strict';
 
 const express = require('express');
-const { password } = require('pg/lib/defaults.js');
 const router = express.Router();
 const knex = require('../knex.js')
 const JWT_KEY = process.env.JWT_KEY

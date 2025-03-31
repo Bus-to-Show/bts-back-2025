@@ -3,8 +3,6 @@
 const express = require('express');
 const router = express.Router();
 const knex = require('../knex.js')
-const cors = require('cors');
-const { select } = require('../knex.js');
 
 
 //List (get all of the resource)
