@@ -1,9 +1,7 @@
 'use strict';
 
-require('dotenv').config();
 const express = require('express');
 const router = express.Router();
-const cookieParser = require('cookie-parser')
 const knex = require('../knex.js')
 // Parse the environment variable into an object
 const parse = require("pg-connection-string").parse;

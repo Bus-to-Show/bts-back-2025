@@ -2,7 +2,6 @@
 
 const express = require('express');
 const router = express.Router();
-const cookieParser = require('cookie-parser')
 const knex = require('../knex.js')
 var convertTime = require('convert-time')
 const nodemailer = require('nodemailer')

@@ -1,7 +1,6 @@
 'use strict';
 const express = require('express');
 const router = express.Router();
-const { update } = require('../knex');
 
 // Parse the environment variable into an object
 const parse = require("pg-connection-string").parse;

@@ -1,15 +1,12 @@
-if (process.env.NODE_ENV !== 'production'){
-  require('dotenv').load();
-}
+require('dotenv').load();
+
 var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-var dotenv = require('dotenv').config()
 var cron = require('node-cron')
 var cors = require('cors');
 var helmet = require('helmet')
-const jwt = require('jsonwebtoken')
 
 var discountCodesEventsRouter = require('./routes/discount_codes_events')
 var discountCodesRouter = require('./routes/discount_codes');
