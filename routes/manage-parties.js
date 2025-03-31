@@ -3,7 +3,6 @@ const express = require('express');
 const router = express.Router();
 const { update } = require('../knex');
 
-const whitelist = process.env.ORIGIN_URL.split(' ')
 // Parse the environment variable into an object
 const parse = require("pg-connection-string").parse;
 const pgconfig = parse(process.env.DATABASE_URL);
@@ -13,12 +12,6 @@ const pool = new Pool(pgconfig)
 
 //List (get all of the parties with manage details)
 router.get('/:id', (req, res, next) => {
-    (whitelist.indexOf(req.headers.origin) === -1)
-    ?
-    setTimeout(() => {
-          res.sendStatus(404)
-        }, 2000)
-    :
     pool.connect((err, client, release) => {
         if (err) {
           return console.error('Error acquiring client', err.stack)
@@ -67,12 +60,6 @@ router.get('/:id', (req, res, next) => {
 
 
   router.patch('/:id', function(req, res, next){
-    (whitelist.indexOf(req.headers.origin) === -1)
-    ?
-    setTimeout(() => {
-          res.sendStatus(404)
-        }, 2000)
-    :
     pool.connect((err, client, release) => {
         if (err) {
           return console.error('Error acquiring client', err.stack)
@@ -94,12 +81,6 @@ router.get('/:id', (req, res, next) => {
   })
 
   router.put('/:id', function(req, res, next){
-    (whitelist.indexOf(req.headers.origin) === -1)
-    ?
-    setTimeout(() => {
-          res.sendStatus(404)
-        }, 2000)
-    :
     pool.connect((err, client, release) => {
         if (err) {
           return console.error('Error acquiring client', err.stack)

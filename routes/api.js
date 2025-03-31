@@ -6,7 +6,6 @@ const cookieParser = require('cookie-parser')
 const jwt = require('jsonwebtoken');
 const { user } = require('pg/lib/defaults');
 const JWT_KEY = process.env.JWT_KEY
-const whitelist = process.env.ORIGIN_URL.split(' ')
 const parse = require("pg-connection-string").parse;
 const pgconfig = parse(process.env.DATABASE_URL);
 
@@ -50,12 +49,6 @@ function verifyToken(req, res, next){
 }
 
 router.get('/secure', async (req, res) => {
-  (whitelist.indexOf(req.headers.origin) === -1)
-    ?
-    setTimeout(() => {
-      res.status(404).send('Not Found')
-        }, 2000)
-    :
   console.log('/secure hit ')
   const bearerHeader = req.headers.authorization;
 

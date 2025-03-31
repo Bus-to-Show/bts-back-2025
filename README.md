@@ -33,12 +33,9 @@ Heroku dashboard: https://dashboard.heroku.com/apps/blooming-fortress-13049/
    ```
    DATABASE_URL=postgres://[user]:[pass]@localhost:5432/[database]
    JWT_KEY=supersecret
-   ORIGIN_URL=http://localhost:4200 http://localhost:8080
    ```
 
    Replace the stuff in brackets with values from step 2.
-   Port 4200 is used by the rider site when running on localhost.
-   Port 8080 is used by the admin site.
 
 4. Create the database tables with `npx knex migrate:latest`
 

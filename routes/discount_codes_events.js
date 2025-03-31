@@ -4,17 +4,10 @@ const express = require('express');
 const router = express.Router();
 const knex = require('../knex.js')
 const JWT_KEY = process.env.JWT_KEY
-const whitelist = process.env.ORIGIN_URL.split(' ')
 const verifyToken = require('./api').verifyToken
 
 //List (get all of the resource)
 router.get('/', verifyToken, function(req, res, next){
-  (whitelist.indexOf(req.headers.origin) === -1)
-  ?
-  setTimeout(() => {
-        res.sendStatus(404)
-      }, 2000)
-  :
   jwt.verify(req.token, JWT_KEY, (err, authData) => {
     if(err){
       res.sendStatus(403)
