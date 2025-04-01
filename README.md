@@ -34,10 +34,13 @@ Heroku dashboard: https://dashboard.heroku.com/apps/blooming-fortress-13049/
    DATABASE_URL=postgres://[user]:[pass]@localhost:5432/[database]
    JWT_KEY=[jwt_key]
    ORIGIN_URL=http://localhost:4200 http://localhost:8080
+   STRIPE_SECRET_KEY=[sk_test_key]
    ```
 
    * Replace `[user]`, `[pass]`, and `[database]` with values from step 2
    * Replace `[jwt_key]` with anything
+   * Replace `[sk_test_key]` with the value from Heroku or Stripe
+     * Make sure to use the *test* key, not the *live* key!
 
    The origins correspond to the rider and admin sites respectively when
    running on localhost.
