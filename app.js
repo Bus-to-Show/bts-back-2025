@@ -1,15 +1,12 @@
-if (process.env.NODE_ENV !== 'production'){
-  require('dotenv').load();
-}
+require('dotenv').load();
+
 var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-var dotenv = require('dotenv').config()
 var cron = require('node-cron')
 var cors = require('cors');
 var helmet = require('helmet')
-const jwt = require('jsonwebtoken')
 
 var discountCodesEventsRouter = require('./routes/discount_codes_events')
 var discountCodesRouter = require('./routes/discount_codes');
@@ -28,7 +25,7 @@ var reminderEmails = require('./reminderEmails')
 var reservationsRouter = require('./routes/reservations');
 var usersRouter = require('./routes/users')
 var apiRouter = require('./routes/api').router
-const stripeSync = require('./routes/stripe-sync')
+
 var app = express();
 var whitelist = process.env.ORIGIN_URL.split(' ')
 var corsOptions = {
@@ -67,7 +64,6 @@ app.use(`/pickup_parties`, pickupPartiesRouter);
 app.use(`/manage-parties`, managePartiesRouter)
 app.use(`/manage-reservations`, manageReservationsRouter)
 app.use(`/reservations`, reservationsRouter);
-app.use('/stripe-sync', stripeSync);
 app.use('/products', productsRouter);
 app.use('/purchases', purchasesRouter);
 

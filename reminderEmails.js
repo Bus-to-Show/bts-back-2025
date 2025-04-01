@@ -4,7 +4,7 @@ const generateReminderEmailArray = require('./generateReminderEmailArray').gener
 
 
 let countVal = 0
-const whitelist = process.env.ORIGIN_URL.split(' ')
+
 // Parse the environment variable into an object
 const parse = require("pg-connection-string").parse;
 const pgconfig = parse(process.env.DATABASE_URL);

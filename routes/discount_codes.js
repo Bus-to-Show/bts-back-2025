@@ -3,19 +3,10 @@
 const express = require('express');
 const router = express.Router();
 const knex = require('../knex.js')
-const cors = require('cors');
-const { select } = require('../knex.js');
-const whitelist = process.env.ORIGIN_URL.split(' ')
 
 
 //List (get all of the resource)
 router.get('/', function (req, res, next) {
-  (whitelist.indexOf(req.headers.origin) === -1)
-    ?
-    setTimeout(() => {
-      res.sendStatus(404)
-    }, 2000)
-    :
     knex('discount_codes')
       .select('id', 'discountCode', 'percentage', 'expiresOn', 'issuedOn', 'issuedTo', 'issuedBy', 'issuedBecause', 'timesUsed', 'type', 'remainingUses', 'usesPerEvent')
       .then((data) => {
@@ -27,12 +18,6 @@ router.get('/', function (req, res, next) {
 //Read (get one of the resource)
 // Get One
 router.get('/:id', function (req, res, next) {
-  (whitelist.indexOf(req.headers.origin) === -1)
-    ?
-    setTimeout(() => {
-      res.sendStatus(404)
-    }, 2000)
-    :
     knex('discount_codes')
       .select('id', 'discountCode', 'percentage', 'expiresOn', 'issuedOn', 'issuedTo', 'issuedBy', 'issuedBecause', 'timesUsed', 'type', 'remainingUses', 'usesPerEvent')
       .where('id', req.params.id)
@@ -42,12 +27,6 @@ router.get('/:id', function (req, res, next) {
 })
 
 router.get('/:user_id/:event_id', function (req, res, next) {
-  (whitelist.indexOf(req.headers.origin) === -1)
-    ?
-    setTimeout(() => {
-      res.sendStatus(404)
-    }, 2000)
-    :
     knex('users')
       .select('email')
       .where('id', req.params.user_id)

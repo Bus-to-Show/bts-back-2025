@@ -2,20 +2,12 @@
 
 const express = require('express');
 const router = express.Router();
-const cookieParser = require('cookie-parser')
 const knex = require('../knex.js')
-const whitelist = process.env.ORIGIN_URL.split(' ')
 
 
 
 //List (get all of the resource)
 router.get('/', function(req, res, next){
-  (whitelist.indexOf(req.headers.origin) === -1)
-    ?
-    setTimeout(() => {
-          res.sendStatus(404)
-        }, 2000)
-    :
   knex('events')
     .select('id', 'date', 'startTime', 'venue', 'headliner', 'support1', 'support2', 'support3', 'headlinerImgLink', 'headlinerBio', 'meetsCriteria', 'isDenied', 'external')
   .then((data) => {
