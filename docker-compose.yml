@@ -1,0 +1,11 @@
+services:
+  db:
+    image: postgres:16.8
+    restart: always
+    shm_size: 128mb
+    environment:
+      POSTGRES_DB: bts_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+    ports:
+      - 5432:5432
