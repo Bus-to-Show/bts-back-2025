@@ -7,77 +7,75 @@ const knex = require('../knex.js')
 
 //List (get all of the resource)
 router.get('/', function (req, res, next) {
-    knex('discount_codes')
-      .select('id', 'discountCode', 'percentage', 'expiresOn', 'issuedOn', 'issuedTo', 'issuedBy', 'issuedBecause', 'timesUsed', 'type', 'remainingUses', 'usesPerEvent')
-      .then((data) => {
-        res.status(200).json(data)
-      })
+  knex('discount_codes')
+    .select('id', 'discountCode', 'percentage', 'expiresOn', 'issuedOn', 'issuedTo', 'issuedBy', 'issuedBecause', 'timesUsed', 'type', 'remainingUses', 'usesPerEvent')
+    .then((data) => {
+      res.status(200).json(data)
+    })
 })
 
 
 //Read (get one of the resource)
 // Get One
 router.get('/:id', function (req, res, next) {
-    knex('discount_codes')
-      .select('id', 'discountCode', 'percentage', 'expiresOn', 'issuedOn', 'issuedTo', 'issuedBy', 'issuedBecause', 'timesUsed', 'type', 'remainingUses', 'usesPerEvent')
-      .where('id', req.params.id)
-      .then((data) => {
-        res.status(200).json(data[0])
-      })
+  knex('discount_codes')
+    .select('id', 'discountCode', 'percentage', 'expiresOn', 'issuedOn', 'issuedTo', 'issuedBy', 'issuedBecause', 'timesUsed', 'type', 'remainingUses', 'usesPerEvent')
+    .where('id', req.params.id)
+    .then((data) => {
+      res.status(200).json(data[0])
+    })
 })
 
 router.get('/:user_id/:event_id', function (req, res, next) {
-    knex('users')
-      .select('email')
-      .where('id', req.params.user_id)
-      .first()
-      .then((user) => {
-        knex.raw("SELECT date FROM events WHERE id = ?::integer", [req.params.event_id])
-          .then((eventRaw) => {
-            const event = eventRaw.rows[0];
-            knex('discount_codes')
-              .select('discountCode', 'id')
-              .where('issuedTo', user.email)
-              .andWhere('type', 1)
-              .andWhere('expiresOn', '>=', knex.raw("to_date(?, 'MM/DD/YYYY')", [event.date]))
-              .first()
-              .then((discountCode) => {
-                if (discountCode) {
-                  knex('discount_codes_events')
-                    .select(['timesUsedThisEvent'])
-                    .where('discountCodeId', discountCode.id)
-                    .andWhere('eventsId', req.params.event_id)
-                    .first()
-                    .then((discountCodeEvent) => {
-                      if (discountCodeEvent && discountCodeEvent.timesUsedThisEvent > 0) {
-                        res.status(200).json({
-                          message: "Season pass discount code has already been applied.",
-                          discountCode: discountCode.discountCode,
-                          alreadyApplied: true
-                        });
-                      } else {
-                        res.status(200).json({
-                          message: "Season pass discount code is available.",
-                          discountCode: discountCode.discountCode,
-                          alreadyApplied: false
-                        });
-                      }
-                    });
-                } else {
-                  res.status(200).json({
-                    message: "No valid season pass discount code found.",
-                    discountCode: null
+  knex('users')
+    .select('email')
+    .where('id', req.params.user_id)
+    .first()
+    .then((user) => {
+      knex.raw("SELECT date FROM events WHERE id = ?::integer", [req.params.event_id])
+        .then((eventRaw) => {
+          const event = eventRaw.rows[0];
+          knex('discount_codes')
+            .select('discountCode', 'id')
+            .where('issuedTo', user.email)
+            .andWhere('type', 1)
+            .andWhere('expiresOn', '>=', knex.raw("to_date(?, 'MM/DD/YYYY')", [event.date]))
+            .first()
+            .then((discountCode) => {
+              if (discountCode) {
+                knex('discount_codes_events')
+                  .select(['timesUsedThisEvent'])
+                  .where('discountCodeId', discountCode.id)
+                  .andWhere('eventsId', req.params.event_id)
+                  .first()
+                  .then((discountCodeEvent) => {
+                    if (discountCodeEvent && discountCodeEvent.timesUsedThisEvent > 0) {
+                      res.status(200).json({
+                        message: "Season pass discount code has already been applied.",
+                        discountCode: discountCode.discountCode,
+                        alreadyApplied: true
+                      });
+                    } else {
+                      res.status(200).json({
+                        message: "Season pass discount code is available.",
+                        discountCode: discountCode.discountCode,
+                        alreadyApplied: false
+                      });
+                    }
                   });
-                }
-              });
-          });
-      })
-      .catch((error) => {
-        res.status(500).json({ message: "Error fetching data.", error });
-      });
+              } else {
+                res.status(200).json({
+                  message: "No valid season pass discount code found.",
+                  discountCode: null
+                });
+              }
+            });
+        });
+    })
+    .catch((error) => {
+      res.status(500).json({ message: "Error fetching data.", error });
+    });
 });
-
-
 
 
 //Create (create one of the resource)
@@ -117,7 +115,6 @@ router.patch('/return/:id', function (req, res, next) {
 })
 
 
-
 //check user entered discount code against database then return code id, new price, and remaining uses.
 router.patch('/', function (req, res, next) {
   let discountCode = req.body.discountCode
@@ -128,20 +125,20 @@ router.patch('/', function (req, res, next) {
   let afterDiscountObj = {}
   afterDiscountObj.ticketQuantity = ticketQuantity
   afterDiscountObj.eventsId = req.body.eventId
-  if(req.body.applyOrRelease === 'release'){
+  if (req.body.applyOrRelease === 'release') {
     knex('discount_codes_events')
-    .where(function() {
-      this.where('discountCodeId', function() {
-        this.select('id').from('discount_codes').where('discountCode', '=', req.body.discountCode);
+      .where(function () {
+        this.where('discountCodeId', function () {
+          this.select('id').from('discount_codes').where('discountCode', '=', req.body.discountCode);
+        })
+          .andWhere('eventsId', '=', req.body.eventId);
       })
-      .andWhere('eventsId', '=', req.body.eventId);
-    })
-    .increment('timesUsedThisEvent', -1)
-    .then(data => {
-      res.status(200).json(data)
-    });
+      .increment('timesUsedThisEvent', -1)
+      .then(data => {
+        res.status(200).json(data)
+      });
   }
-  else{
+  else {
     knex('discount_codes')
       // .join('discount_codes_events', 'discount_codes.id', 'discount_codes_events.discountCodeId')
       // .join('events', 'discount_codes_events.eventsId', 'events.id')
@@ -153,7 +150,7 @@ router.patch('/', function (req, res, next) {
         }
         else if (match) {
           match = match[0]
-          console.log('match! ==>>==>> ', match );
+          console.log('match! ==>>==>> ', match);
           afterDiscountObj.newRemainingUses = match.remainingUses
           afterDiscountObj.type = match.type
           //afterDiscountObj.discountCodeEventsId = match.id
@@ -170,7 +167,7 @@ router.patch('/', function (req, res, next) {
           // if code is for one time use and has been used, return message
           else if (match.type === 1) {
             return knex('discount_codes_events')
-            .select('*')
+              .select('*')
               .where('discountCodeId', match.id)
               .andWhere('eventsId', req.body.eventId)
               .then((match2) => {
@@ -203,13 +200,13 @@ router.patch('/', function (req, res, next) {
               afterDiscountObj.totalPriceAfterDiscount = (priceWithoutFeesPerTicket * (ticketQuantity - match.remainingUses) + priceWithoutFeesPerTicket * effectiveRate * match.remainingUses) * 1.10
               afterDiscountObj.newRemainingUses = 0
               afterDiscountObj.savings = totalPrice - afterDiscountObj.totalPriceAfterDiscount
-  
+
               return afterDiscountObj
-  
+
             }
           }
           console.log('afterDiscountObj nothin ===>', afterDiscountObj)
-  
+
         }
       })
       .then((afterDiscountObj) => {
@@ -229,7 +226,7 @@ router.patch('/', function (req, res, next) {
               return res.status(200).json(data)
             })
         } else if (afterDiscountObj.newRemainingUses || afterDiscountObj.newRemainingUses === 0) {
-  
+
           knex('discount_codes')
             .select('*')
             .where('discountCode', discountCode)
@@ -244,11 +241,11 @@ router.patch('/', function (req, res, next) {
               return res.status(200).json(data)
             })
         }
-  
+
       })
       .catch(error => {
         console.error(error);
-        return res.status(500).json({message: 'An unknown error occurred.'});
+        return res.status(500).json({ message: 'An unknown error occurred.' });
       });
   }
 })

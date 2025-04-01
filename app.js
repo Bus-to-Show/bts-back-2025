@@ -80,7 +80,6 @@ apiDataFunction = async () => {
 
 // let time = new Date()
 
-
 cron.schedule('0 4 * * *', () => {
   if (process.env.NODE_ENV == 'production'){
   console.log('Running apiDataFunction cron!');

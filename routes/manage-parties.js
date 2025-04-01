@@ -11,10 +11,10 @@ const pool = new Pool(pgconfig)
 
 //List (get all of the parties with manage details)
 router.get('/:id', (req, res, next) => {
-    pool.connect((err, client, release) => {
-        if (err) {
-          return console.error('Error acquiring client', err.stack)
-        }
+  pool.connect((err, client, release) => {
+    if (err) {
+      return console.error('Error acquiring client', err.stack)
+    }
 
     //     SELECT DISTINCT pp.id, pp."lastBusDepartureTime", pp."firstBusLoadTime", pp."partyPrice", pp."inCart", pp.capacity 
     //         ,  pl."locationName", pl."city"
@@ -26,7 +26,7 @@ router.get('/:id', (req, res, next) => {
     //     JOIN  pickup_parties pp ON pl.id = pp."pickupLocationId"
     //     WHERE pp."eventId" = ${req.params.id}
     // ;
-        client.query(`
+    client.query(`
         WITH active AS (SELECT DISTINCT pp.id AS party_id, pp."lastBusDepartureTime", pp."firstBusLoadTime", pp."partyPrice", pp."inCart", pp.capacity 
             , pl.id AS loc_id
             , COALESCE(
@@ -47,62 +47,63 @@ router.get('/:id', (req, res, next) => {
         ORDER BY active.created, pl."type", pl.id
  
         `, (err, result) => {
-          release()
-          if (err) {
-            return console.error('Error executing query', err.stack)
-          }
-          res.status(200).json(result.rows)
-        })
-      })
-
+      release()
+      if (err) {
+        return console.error('Error executing query', err.stack)
+      }
+      res.status(200).json(result.rows)
+    })
   })
+})
 
 
-  router.patch('/:id', function(req, res, next){
-    pool.connect((err, client, release) => {
-        if (err) {
-          return console.error('Error acquiring client', err.stack)
-        }
-        client.query(` 
+// 
+router.patch('/:id', function (req, res, next) {
+  pool.connect((err, client, release) => {
+    if (err) {
+      return console.error('Error acquiring client', err.stack)
+    }
+    client.query(` 
             UPDATE pickup_parties
             SET capacity = ${req.body.capacity}
             WHERE id = ${req.params.id}
             RETURNING *
         ;
         `, (err, result) => {
-          release()
-          if (err) {
-            return console.error('Error executing query', err.stack)
-          }
-          res.status(200).json(result.rows)
-        })
-      })
+      release()
+      if (err) {
+        return console.error('Error executing query', err.stack)
+      }
+      res.status(200).json(result.rows)
+    })
   })
+})
 
-  router.put('/:id', function(req, res, next){
-    pool.connect((err, client, release) => {
-        if (err) {
-          return console.error('Error acquiring client', err.stack)
-        }
-        
 
-        const partyBody = {
-            id: req.body.party_id,
-            eventId: req.body.eventid,
-            pickupLocationId: req.body.location_id,
-            lastBusDepartureTime: req.body.lastBusDepartureTime,
-            firstBusLoadTime: req.body.firstBusLoadTime,
-            partyPrice: req.body.partyPrice,
-            capacity: req.body.capacity,
-          }
-          
-          if(partyBody.capacity == null) partyBody.capacity = 0
-          if(partyBody.partyPrice == null) partyBody.partyPrice = 30
-          if(partyBody.lastBusDepartureTime == null) partyBody.lastBusDepartureTime = '17:30'
-          if(partyBody.firstBusLoadTime == null) partyBody.firstBusLoadTime = partyBody.lastBusDepartureTime
+// 
+router.put('/:id', function (req, res, next) {
+  pool.connect((err, client, release) => {
+    if (err) {
+      return console.error('Error acquiring client', err.stack)
+    }
 
-        const {id, eventId, pickupLocationId, lastBusDepartureTime, firstBusLoadTime, partyPrice, capacity, created_at, updated_at} = req.body
-        const updateQuery = `
+    const partyBody = {
+      id: req.body.party_id,
+      eventId: req.body.eventid,
+      pickupLocationId: req.body.location_id,
+      lastBusDepartureTime: req.body.lastBusDepartureTime,
+      firstBusLoadTime: req.body.firstBusLoadTime,
+      partyPrice: req.body.partyPrice,
+      capacity: req.body.capacity,
+    }
+
+    if (partyBody.capacity == null) partyBody.capacity = 0
+    if (partyBody.partyPrice == null) partyBody.partyPrice = 30
+    if (partyBody.lastBusDepartureTime == null) partyBody.lastBusDepartureTime = '17:30'
+    if (partyBody.firstBusLoadTime == null) partyBody.firstBusLoadTime = partyBody.lastBusDepartureTime
+
+    const { id, eventId, pickupLocationId, lastBusDepartureTime, firstBusLoadTime, partyPrice, capacity, created_at, updated_at } = req.body
+    const updateQuery = `
                     UPDATE pickup_parties SET "lastBusDepartureTime" = '${partyBody.lastBusDepartureTime}',
                             "firstBusLoadTime" = '${partyBody.firstBusLoadTime}',
                             "partyPrice" = ${partyBody.partyPrice},
@@ -115,7 +116,7 @@ router.get('/:id', (req, res, next) => {
                     RETURNING *
                 ;`
 
-        const insertQuery = `
+    const insertQuery = `
                     INSERT INTO pickup_parties("eventId", "pickupLocationId", "lastBusDepartureTime", "firstBusLoadTime", "partyPrice", "capacity", created_at, updated_at)
                     VALUES(${partyBody.eventId}, ${partyBody.pickupLocationId}, '${partyBody.lastBusDepartureTime}', '${partyBody.firstBusLoadTime}', ${partyBody.partyPrice}, ${partyBody.capacity}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP )
                     ON CONFLICT (id)
@@ -131,17 +132,16 @@ router.get('/:id', (req, res, next) => {
 
                     RETURNING *
                 ;`
-        const homeMadeUpsertQuery = partyBody.id ?  updateQuery : insertQuery; 
-        client.query(`${homeMadeUpsertQuery}`, (err, result) => {
-          release()
-          if (err) {
-            throw new Error('Error executing query', err.stack)
-          }
-          res.status(200).json(result.rows)
-        })
-
-      })
+    const homeMadeUpsertQuery = partyBody.id ? updateQuery : insertQuery;
+    client.query(`${homeMadeUpsertQuery}`, (err, result) => {
+      release()
+      if (err) {
+        throw new Error('Error executing query', err.stack)
+      }
+      res.status(200).json(result.rows)
+    })
   })
+})
 
 
-  module.exports = router;
+module.exports = router;

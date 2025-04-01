@@ -9,24 +9,24 @@ const pgconfig = parse(process.env.DATABASE_URL);
 const Pool = require('pg').Pool
 const pool = new Pool(pgconfig)
 
+
 //List (get all of the resource)
 router.get('/', (req, res, next) => {
-    pool.connect((err, client, release) => {
-        if (err) {
-          return console.error('Error acquiring client', err.stack)
-        }
-        client.query(`
+  pool.connect((err, client, release) => {
+    if (err) {
+      return console.error('Error acquiring client', err.stack)
+    }
+    client.query(`
         select * from products where status not in ('hidden')
         `, (err, result) => {
-          release()
-          if (err) {
-            return console.error('Error executing query', err.stack)
-          }
-          res.status(200).json(result.rows)
-        })
-      })
-
+      release()
+      if (err) {
+        return console.error('Error executing query', err.stack)
+      }
+      res.status(200).json(result.rows)
+    })
   })
-  
-  module.exports = router;
+})
+
+module.exports = router;
 
