@@ -16,7 +16,7 @@ var ordersRouter = require('./routes/orders');
 var pickupLocationsRouter = require('./routes/pickup_locations');
 var pickupPartiesRouter = require('./routes/pickup_parties');
 var purchasesRouter = require('./routes/purchases');
-var productsRouter =  require('./routes/products');
+var productsRouter = require('./routes/products');
 var managePartiesRouter = require('./routes/manage-parties');
 var manageReservationsRouter = require('./routes/manage-reservations');
 
@@ -67,7 +67,7 @@ app.use(`/reservations`, reservationsRouter);
 app.use('/products', productsRouter);
 app.use('/purchases', purchasesRouter);
 
-app.use(function(req, res) {
+app.use(function (req, res) {
   console.log('next all the way to the end without finding anything req =====>', req.path)
   res.status(404).send('Not Found!');
 });
@@ -81,22 +81,22 @@ apiDataFunction = async () => {
 // let time = new Date()
 
 cron.schedule('0 4 * * *', () => {
-  if (process.env.NODE_ENV == 'production'){
-  console.log('Running apiDataFunction cron!');
-  apiDataFunction()
+  if (process.env.NODE_ENV == 'production') {
+    console.log('Running apiDataFunction cron!');
+    apiDataFunction()
   }
 }, {
   scheduled: true,
   timezone: "America/Denver"
 });
 cron.schedule('*/5 * * * *', () => {
-  if (process.env.NODE_ENV == 'production'){
+  if (process.env.NODE_ENV == 'production') {
     eventDataHandler.sweepInCarts()
   }
 })
 
 cron.schedule('15 17 * * *', () => {
-  if (process.env.NODE_ENV == 'production'){
+  if (process.env.NODE_ENV == 'production') {
     console.log('reminder email cron! ')
     reminderEmails.sendReminder()
   }

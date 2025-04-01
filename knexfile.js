@@ -10,10 +10,10 @@ const pgconfig = parse(process.env.DATABASE_URL);
 
 module.exports = {
 
-  development: {  
-    client: "pg",  
+  development: {
+    client: "pg",
     connection: pgconfig
-    
+
     // client: 'pg',
     // connection: {
     //   host: process.env.DATABASE_URL,
@@ -35,5 +35,4 @@ module.exports = {
     connection: pgconfig
   },
 }
-
 

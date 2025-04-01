@@ -1,4 +1,4 @@
-export const orderDetail = 
+export const orderDetail =
   [{
     orderedByEmail: 'jaclynwolff@aol.com',
     orderedByFirstName: 'Jaclyn',
