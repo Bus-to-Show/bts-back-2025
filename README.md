@@ -16,8 +16,8 @@ Heroku dashboard: https://dashboard.heroku.com/apps/blooming-fortress-13049/
 * Node v16.20
 * npm v8.19
 * One of:
-    a. PostgreSQL v16.8
-    b. Docker with Compose v2
+  * PostgreSQL v16.8
+  * Docker with Compose v2
 
 ### Setup
 
@@ -25,20 +25,22 @@ Heroku dashboard: https://dashboard.heroku.com/apps/blooming-fortress-13049/
 
 2. Create the database
 
-   a. Using pgAdmin/DBeaver/whatever
-   b. Using `docker compose up`
+   If you have Docker, just run `docker compose up`.
+   Otherwise create the database in pgAdmin/DBeaver/whatever.
 
 3. Create a file named `.env` in the project root directory with these contents:
 
    ```
    DATABASE_URL=postgres://[user]:[pass]@localhost:5432/[database]
-   JWT_KEY=supersecret
+   JWT_KEY=[jwt_key]
    ORIGIN_URL=http://localhost:4200 http://localhost:8080
    ```
 
-   Replace the stuff in brackets with values from step 2.
-   Port 4200 is used by the rider site when running on localhost.
-   Port 8080 is used by the admin site.
+   * Replace `[user]`, `[pass]`, and `[database]` with values from step 2
+   * Replace `[jwt_key]` with anything
+
+   The origins correspond to the rider and admin sites respectively when
+   running on localhost.
 
 4. Create the database tables with `npx knex migrate:latest`
 
