@@ -17,7 +17,7 @@ const verifyToken = require('./api').verifyToken
 
 
 
-//List (get all of the resource)
+// List (get all of the resources)
 router.get('/', verifyToken, function (req, res, next) {
   jwt.verify(req.token, JWT_KEY, (err, authData) => {
     if (err) {

@@ -12,7 +12,7 @@ const pgconfig = parse(process.env.DATABASE_URL);
 const Pool = require('pg').Pool
 const pool = new Pool(pgconfig)
 
-// 
+// connecter to GMail updates email account
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -47,16 +47,17 @@ const actuallySend = async (emailAddress, emailBody) => {
 
 // 
 const reminderQuery = () => {
-  console.log('-reminderquery fired ')
+  console.log('-reminderQuery() fired ')
   pool.connect((err, client, release) => {
     if (err) {
       return console.error('Error acquiring client', err.stack)
     }
 
+    // query DB
     client.query(`
         WITH event_order_details AS (
 	        SELECT o."orderedByEmail"
-	            , o."orderedByFirstName"
+            , o."orderedByFirstName"
 	        	, o."orderedByLastName"
 	        	, o."orderedByPhone"
 	        	, o."id" AS order_id
@@ -85,7 +86,7 @@ const reminderQuery = () => {
 	        AND TO_DATE(events."date"::TEXT, 'MM/DD/YYYY') <= TO_DATE((current_date + 1) ::TEXT, 'YYYY/MM/DD')
 	        AND r.status != 3
         ) SELECT  "orderedByEmail"
-	            , INITCAP("orderedByFirstName") AS "orderedByFirstName" 
+            , INITCAP("orderedByFirstName") AS "orderedByFirstName" 
 	        	, INITCAP("orderedByLastName") AS "orderedByLastName" 
 	        	, "orderedByPhone"
 	        	, order_id
@@ -105,11 +106,11 @@ const reminderQuery = () => {
 	        	, support2
 	        	, support3
 	        	, venue
-                , count(res_id) AS res_count
+            , count(res_id) AS res_count
         FROM event_order_details 
-		GROUP BY "orderedByEmail"
-			    , order_id
-	            , "orderedByFirstName"
+		    GROUP BY "orderedByEmail"
+			      , order_id
+            , "orderedByFirstName"
 	        	, "orderedByLastName"
 	        	, "orderedByPhone"
 	        	, "willCallFirstName"
@@ -127,11 +128,10 @@ const reminderQuery = () => {
 	        	, support2
 	        	, support3
 	        	, venue
-		
         `, (err, result) => {
       release()
       if (err) {
-        console.log('awwww nuts, ', err)
+        console.log('Awwww nuts, reminderQuery encountered an error: ', err)
         return console.error('Error executing query', err.stack)
       }
       let riderList = result.rows
