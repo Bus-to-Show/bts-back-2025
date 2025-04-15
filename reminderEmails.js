@@ -28,20 +28,19 @@ const transporter = nodemailer.createTransport({
   }
 
   const actuallySend = async (emailAddress, emailBody) => {
-    await transporter.sendMail({
+    try {
+      const info = await transporter.sendMail({
         from: 'updates@bustoshow.org',
         to: emailAddress,
         bcc: 'reservations@bustoshow.org',
         subject: `Your Bus to Show Event Details` ,
         text: emailBody
-      }, function(error, info){
-        if (error) {
-            console.error(error)
-        } else {
-          console.log(' here is what info is ', info)
-          res.status(200).json(info.accepted)
-      }
-     })
+      });
+
+      console.log('Email sent', info);
+    } catch (error) {
+      console.error('Email not sent', error);
+    }
   }
 
   const reminderQuery = () => {
@@ -62,9 +61,9 @@ const transporter = nodemailer.createTransport({
 	        	, r."willCallFirstName"
 	        	, r."willCallLastName"
 	        	, pp.id AS party_id
-	        	, pp."firstBusLoadTime" 
+	        	, pp."firstBusLoadTime"
 	        	, pp."lastBusDepartureTime"
-	        	, pl."streetAddress" 
+	        	, pl."streetAddress"
 	        	, pl."locationName"
 	        	, pl."city"
 	        	, events."id" AS event_id
@@ -83,16 +82,16 @@ const transporter = nodemailer.createTransport({
 	        AND TO_DATE(events."date"::TEXT, 'MM/DD/YYYY') <= TO_DATE((current_date + 1) ::TEXT, 'YYYY/MM/DD')
 	        AND r.status != 3
         ) SELECT  "orderedByEmail"
-	            , INITCAP("orderedByFirstName") AS "orderedByFirstName" 
-	        	, INITCAP("orderedByLastName") AS "orderedByLastName" 
+	            , INITCAP("orderedByFirstName") AS "orderedByFirstName"
+	        	, INITCAP("orderedByLastName") AS "orderedByLastName"
 	        	, "orderedByPhone"
 	        	, order_id
-	        	, INITCAP("willCallFirstName") AS "willCallFirstName" 
+	        	, INITCAP("willCallFirstName") AS "willCallFirstName"
 	        	, INITCAP("willCallLastName")  AS "willCallLastName"
 	        	, party_id
-	        	, "firstBusLoadTime" 
+	        	, "firstBusLoadTime"
 	        	, "lastBusDepartureTime"
-	        	, "streetAddress" 
+	        	, "streetAddress"
 	        	, "locationName"
 	        	, "city"
 	        	, event_id
@@ -104,7 +103,7 @@ const transporter = nodemailer.createTransport({
 	        	, support3
 	        	, venue
                 , count(res_id) AS res_count
-        FROM event_order_details 
+        FROM event_order_details
 		GROUP BY "orderedByEmail"
 			    , order_id
 	            , "orderedByFirstName"
@@ -113,9 +112,9 @@ const transporter = nodemailer.createTransport({
 	        	, "willCallFirstName"
 	        	, "willCallLastName"
 	        	, party_id
-	        	, "firstBusLoadTime" 
+	        	, "firstBusLoadTime"
 	        	, "lastBusDepartureTime"
-	        	, "streetAddress" 
+	        	, "streetAddress"
 	        	, "locationName"
 	        	, "city"
 	        	, "date"
@@ -125,7 +124,7 @@ const transporter = nodemailer.createTransport({
 	        	, support2
 	        	, support3
 	        	, venue
-		
+
         `, (err, result) => {
           release()
           if (err) {
@@ -144,7 +143,7 @@ const transporter = nodemailer.createTransport({
             formattedEmailList.forEach(show => {
               if (countVal < 2 + formattedEmailList.length){
 
-              
+
               countVal = formattedEmailList.length + countVal
               console.log(' show array here !! ', show, countVal)
               show.forEach(s => {
@@ -163,7 +162,7 @@ const transporter = nodemailer.createTransport({
                   const locationName = parties[partyId].locationName;
                   const city = parties[partyId].city
                   const partyOrders = parties[partyId].orders
-     
+
                   const convert24hStringToAmPmTime = (time24) => {
                     let amPmTime = ''
                     let hours = Number(time24.substring(0, time24.indexOf(':')))
@@ -175,25 +174,25 @@ const transporter = nodemailer.createTransport({
                     amPmTime = `${hours}:${minutes} ${amOrPm}`
                     console.log('amPmTime ====> ', amPmTime)
                   }
-                  
+
                   for (partyOrder in partyOrders) {
                     const emailBody = `${partyOrders[partyOrder].orderFirst}! Thank you for riding with Bus to Show!
-                    This is a quick note to remind you about the upcoming bus trip  
+                    This is a quick note to remind you about the upcoming bus trip
                      to ${venue} on ${date} for ${headliner}${
                        + support1 ? ', ' + support1 : ''
-                      + support2 ? ', ' + support2 : '' 
-                      + support3 ? ', & ' + support3 : ''}.  
+                      + support2 ? ', ' + support2 : ''
+                      + support3 ? ', & ' + support3 : ''}.
                     You currently have ${partyOrders[partyOrder].count == 1 ? partyOrders[partyOrder].count + ' spot' : partyOrders[partyOrder].count + ' spots'} reserved, which can be claimed at
                     check-in by yourself (${partyOrders[partyOrder].orderFirst} ${partyOrders[partyOrder].orderLast}) or anyone else you listed when you placed your order${
-                      (partyOrders[partyOrder].reservations[0].willFirst != partyOrders[partyOrder].orderFirst || partyOrders[partyOrder].reservations[0].willLast != partyOrders[partyOrder].orderLast)   
+                      (partyOrders[partyOrder].reservations[0].willFirst != partyOrders[partyOrder].orderFirst || partyOrders[partyOrder].reservations[0].willLast != partyOrders[partyOrder].orderLast)
                       ? ' (' + partyOrders[partyOrder].reservations[0].willFirst + ' ' + partyOrders[partyOrder].reservations[0].willLast
                       :''
                     }.  Also, here are the pickup details.... check-in location is ${locationName},
                     ${street} with ${load != depart ? 'check in and first bus loading at ' + convert24hStringToAmPmTime(load) +', and ': ''}last call for departure at ${convert24hStringToAmPmTime(depart)}.
-                    Please show up at least 10-15 min before last call and bring a legal id for name and age verification (we're 18+ unless you have your parent/guardian email reservations@bustoshow.org with a photo id and permission note).  
+                    Please show up at least 10-15 min before last call and bring a legal id for name and age verification (we're 18+ unless you have your parent/guardian email reservations@bustoshow.org with a photo id and permission note).
                     Okay, I think that's everything.  Thanks again, we'll see you soon!  Love always, BTS.
                     `
-                    
+
                     actuallySend(partyOrders[partyOrder].email, emailBody)
                     console.log('emailBody created ====>  ', date)
                   }
