@@ -167,7 +167,9 @@ router.post('/', function (req, res, next) {
           text: `Thank you for riding with Bus to Show!  You have reserved ${ticketQuantity} round-trip seat(s) departing from ${result.locationName} : ${result.streetAddress} and going to ${result.headliner} at ${result.venue} on ${result.date}. The currently scheduled last call time is ${convertTime(result.lastBusDepartureTime)}, and if we have enough demand for multiple buses, we will usually start loading the first bus 30-60 min earlier, and sending them out as soon as they are full.  PLEASE NOTE: Time adjustments do occasionally happen.  The most recently updated departure time ranges are always current on the website.  So, when the event gets closer, please go to the website again and double check the times. There are no refunds for missing the bus. With that said, we try never move last call times earlier unless it is an emergency, and if that happens, we will send lots of communication with lots of advance notice, and give you an opportunity to cancel if the new time doesn't work for you. Otherwise, just bring the ID of the person who ordered the tickets (${firstName} ${lastName}) or, if applicable, the person you chose for will call (${willCallFirstName} ${willCallLastName}...(defaults to ordered by name if you left it blank)) to the departure location, and be ready to have a great time!`
         }, function(error, info){
           if (error) {
+            console.error('Email not sent', error);
           } else {
+            console.log('Email sent', info);
           }
         })
       })
