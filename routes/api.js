@@ -29,20 +29,19 @@ router.get('/', function (req, res, next) {
 })
 
 function verifyToken(req, res, next) {
-  console.log('------ original verify called ------', console.log(JSON.stringify(req.cookies["token"])))
-  //get auth header value
-  //const bearerHeader = req.headers['authorization']
-  const cookieToken = req.cookies['token']
-  //check if value exists
+  const cookieToken = req.cookies['token'];
+
   if (cookieToken) {
-    //set to req.token
-    req.token = cookieToken
-    //call the Next Middleware
-    next()
-  } 
+    jwt.verify(cookieToken, JWT_KEY, (err, decoded) => {
+      if (err) {
+        return res.status(403).json({ message: 'Forbidden: Invalid token' });
+      }
+      req.user = decoded; // Attach decoded token payload to req.user
+      next();
+    });
+  }
   else {
-    //forbidden
-    res.sendStatus('403')
+    res.status(403).json({ message: 'Forbidden: No token provided' });
   }
 }
 
@@ -80,6 +79,7 @@ router.get('/secure', async (req, res) => {
           const { rows } = result
 
           if (rows.length === 0) {
+            console.error('User not found');
             return res.status(401).send('Invalid token!');
           }
 
