@@ -148,7 +148,7 @@ router.patch('/', function (req, res, next) {
       .select('*')
       .where('discountCode', discountCode)
       .then((match) => {
-        if (!match || !match.remainingUses) {
+        if (!match || !match.length || !match[0].remainingUses) {
           return res.status(400).json({ message: 'This code is not in our database.' })
         }
         else if (match) {
@@ -190,7 +190,7 @@ router.patch('/', function (req, res, next) {
           } else if (match.type != 1) {
             if (match.remainingUses <= 0) {
               return res.status(200).json({ message: 'This code is all used up.' })
-            } // if more remaing uses than tickets requested, allow useage 
+            } // if more remaing uses than tickets requested, allow useage
             else if (match.remainingUses >= ticketQuantity) {
               afterDiscountObj.timesUsed = ticketQuantity
               afterDiscountObj.totalPriceAfterDiscount = priceWithoutFeesPerTicket * ticketQuantity * effectiveRate * 1.10
@@ -203,13 +203,13 @@ router.patch('/', function (req, res, next) {
               afterDiscountObj.totalPriceAfterDiscount = (priceWithoutFeesPerTicket * (ticketQuantity - match.remainingUses) + priceWithoutFeesPerTicket * effectiveRate * match.remainingUses) * 1.10
               afterDiscountObj.newRemainingUses = 0
               afterDiscountObj.savings = totalPrice - afterDiscountObj.totalPriceAfterDiscount
-  
+
               return afterDiscountObj
-  
+
             }
           }
           console.log('afterDiscountObj nothin ===>', afterDiscountObj)
-  
+
         }
       })
       .then((afterDiscountObj) => {
@@ -229,7 +229,7 @@ router.patch('/', function (req, res, next) {
               return res.status(200).json(data)
             })
         } else if (afterDiscountObj.newRemainingUses || afterDiscountObj.newRemainingUses === 0) {
-  
+
           knex('discount_codes')
             .select('*')
             .where('discountCode', discountCode)
@@ -244,7 +244,7 @@ router.patch('/', function (req, res, next) {
               return res.status(200).json(data)
             })
         }
-  
+
       })
       .catch(error => {
         console.error(error);
