@@ -116,142 +116,130 @@ router.patch('/return/:id', function (req, res, next) {
     })
 })
 
+router.patch('/', async (request, response, next) => {
+  try {
+    const {status, ...rest} = await handlePatch(request.body);
+    return response.status(status).json(rest);
+  } catch (error) {
+    next(error);
+  }
+});
 
+async function handlePatch({
+  discountCode,
+  totalPrice,
+  ticketQuantity,
+  eventId,
+  applyOrRelease,
+}) {
+  if (!discountCode || !totalPrice || !ticketQuantity || !eventId || !applyOrRelease) {
+    return {status: 400, message: 'Invalid request'};
+  }
 
-//check user entered discount code against database then return code id, new price, and remaining uses.
-router.patch('/', function (req, res, next) {
-  let discountCode = req.body.discountCode
-  let totalPrice = req.body.totalPrice
-  let ticketQuantity = req.body.ticketQuantity
-  let ticketsAndUses = []
-  let priceWithoutFeesPerTicket = totalPrice * 10 / 11 / ticketQuantity
-  let afterDiscountObj = {}
-  afterDiscountObj.ticketQuantity = ticketQuantity
-  afterDiscountObj.eventsId = req.body.eventId
-  if(req.body.applyOrRelease === 'release'){
-    knex('discount_codes_events')
-    .where(function() {
-      this.where('discountCodeId', function() {
-        this.select('id').from('discount_codes').where('discountCode', '=', req.body.discountCode);
+  if (applyOrRelease === 'release') {
+    await release(discountCode, eventId);
+    return {status: 200, message: 'Discount code released'};
+  }
+
+  const discountCodeObj = await getDiscountCode(discountCode);
+
+  if (!discountCodeObj) {
+    return {status: 400, message: 'Discount code not found'};
+  }
+
+  if (Date.parse(discountCodeObj.expiresOn) < Date.now()) {
+    return {status: 200, message: 'Discount code expired'};
+  }
+
+  if (discountCodeObj.type === 1) {
+    const discountCodeEventObj = await getDiscountCodeEvent(discountCodeObj.id, eventId);
+
+    if (!discountCodeEventObj) {
+      return {status: 400, message: 'Discount code not found for this event'};
+    }
+
+    if (discountCodeEventObj.timesUsedThisEvent > 0) {
+      return {status: 200, message: 'Discount code has already been used for this event'};
+    }
+
+    await useDiscountCodeEvent(discountCodeObj.id, eventId, 1);
+
+    const pricePerTicket = totalPrice / ticketQuantity;
+    const totalSavings = pricePerTicket.toFixed(2);
+    const totalPriceAfterDiscount = (totalPrice - totalSavings).toFixed(2);
+
+    return {
+      status: 200,
+      discountCodeId: discountCodeObj.id,
+      totalSavings,
+      totalPriceAfterDiscount,
+    };
+  }
+
+  if (discountCodeObj.remainingUses < 1) {
+    return {status: 200, message: 'Discount code has no uses remaining'};
+  }
+
+  const timesUsedThisOrder = Math.min(discountCodeObj.remainingUses, ticketQuantity);
+  const remainingUses = discountCodeObj.remainingUses - timesUsedThisOrder;
+  const timesUsed = discountCodeObj.timesUsed + timesUsedThisOrder;
+
+  await useDiscountCode(discountCode, remainingUses, timesUsed);
+
+  const pricePerTicket = totalPrice / ticketQuantity;
+  const savingsPerTicket = pricePerTicket * (discountCodeObj.percentage / 100);
+  const totalSavings = (savingsPerTicket * timesUsedThisOrder).toFixed(2);
+  const totalPriceAfterDiscount = (totalPrice - totalSavings).toFixed(2);
+
+  return {
+    status: 200,
+    discountCodeId: discountCodeObj.id,
+    totalSavings,
+    totalPriceAfterDiscount,
+  };
+}
+
+function release(discountCode, eventId) {
+  // TODO: this only applies to type = 1, what about the rest?
+  return knex('discount_codes_events')
+    .where(() => {
+      this.where('discountCodeId', () => {
+        this.select('id').from('discount_codes').where('discountCode', discountCode);
       })
-      .andWhere('eventsId', '=', req.body.eventId);
+      .andWhere('eventsId', eventId);
     })
-    .increment('timesUsedThisEvent', -1)
-    .then(data => {
-      res.status(200).json(data)
-    });
-  }
-  else{
-    knex('discount_codes')
-      // .join('discount_codes_events', 'discount_codes.id', 'discount_codes_events.discountCodeId')
-      // .join('events', 'discount_codes_events.eventsId', 'events.id')
-      .select('*')
-      .where('discountCode', discountCode)
-      .then((match) => {
-        if (!match || !match.length || !match[0].remainingUses) {
-          return res.status(400).json({ message: 'This code is not in our database.' })
-        }
-        else if (match) {
-          match = match[0]
-          console.log('match! ==>>==>> ', match );
-          afterDiscountObj.newRemainingUses = match.remainingUses
-          afterDiscountObj.type = match.type
-          //afterDiscountObj.discountCodeEventsId = match.id
-          afterDiscountObj.discountCodeId = match.id
-          let effectiveRate = (100 - match.percentage) / 100
-          let expiration = Date.parse(new Date(match.expiresOn).toLocaleString('en-US'))
-          let today = Date.parse(new Date().toLocaleString('en-US', {
-            timeZone: 'America/Denver'
-          }
-          ))
-          if (expiration < today) {
-            return res.status(200).json({ message: 'This code has expired.' })
-          }
-          // if code is for one time use and has been used, return message
-          else if (match.type === 1) {
-            return knex('discount_codes_events')
-            .select('*')
-              .where('discountCodeId', match.id)
-              .andWhere('eventsId', req.body.eventId)
-              .then((match2) => {
-                match2 = match2[0]
-                if (match2.timesUsedThisEvent > 0) {
-                  return res.status(200).json({ message: 'This code is all used up.' })
-                } else {
-                  afterDiscountObj.timesUsed = match.timesUsed + 1
-                  afterDiscountObj.timesUsedThisEvent = match2.timesUsedThisEvent + 1
-                  afterDiscountObj.totalPriceAfterDiscount =
-                    (totalPrice / ticketQuantity) // price per ticket
-                    * (ticketQuantity - 1) // minus one ticket
-                  afterDiscountObj.savings = totalPrice - afterDiscountObj.totalPriceAfterDiscount
-                  return afterDiscountObj
-                }
-              })
-          } else if (match.type != 1) {
-            if (match.remainingUses <= 0) {
-              return res.status(200).json({ message: 'This code is all used up.' })
-            } // if more remaing uses than tickets requested, allow useage
-            else if (match.remainingUses >= ticketQuantity) {
-              afterDiscountObj.timesUsed = ticketQuantity
-              afterDiscountObj.totalPriceAfterDiscount = priceWithoutFeesPerTicket * ticketQuantity * effectiveRate * 1.10
-              afterDiscountObj.newRemainingUses = match.remainingUses - ticketQuantity
-              afterDiscountObj.savings = totalPrice - afterDiscountObj.totalPriceAfterDiscount
-              return (afterDiscountObj)
-            } // if fewer remaining uses than tickets requested, only apply discount on qty remainingUses
-            else if (match.remainingUses < ticketQuantity) {
-              afterDiscountObj.timesUsed = match.remainingUses
-              afterDiscountObj.totalPriceAfterDiscount = (priceWithoutFeesPerTicket * (ticketQuantity - match.remainingUses) + priceWithoutFeesPerTicket * effectiveRate * match.remainingUses) * 1.10
-              afterDiscountObj.newRemainingUses = 0
-              afterDiscountObj.savings = totalPrice - afterDiscountObj.totalPriceAfterDiscount
+    .increment('timesUsedThisEvent', -1);
+}
 
-              return afterDiscountObj
+function getDiscountCode(discountCode) {
+  return knex('discount_codes')
+    .select('*')
+    .where('discountCode', discountCode)
+    .first();
+}
 
-            }
-          }
-          console.log('afterDiscountObj nothin ===>', afterDiscountObj)
+function getDiscountCodeEvent(discountCodeId, eventId) {
+  return knex('discount_codes_events')
+    .select('*')
+    .where('discountCodeId', discountCodeId)
+    .andWhere('eventsId', eventId)
+    .first();
+}
 
-        }
-      })
-      .then((afterDiscountObj) => {
-        if (afterDiscountObj.type === 1) {
-          //update discount_codes_events table with new timesUsedThisEvent
-          knex('discount_codes_events')
-            .select('*')
-            .where('discountCodeId', afterDiscountObj.discountCodeId)
-            .andWhere('eventsId', afterDiscountObj.eventsId)
-            .update({
-              timesUsedThisEvent: afterDiscountObj.timesUsedThisEvent
-            })
-            .returning(['eventsId'])
-            .then((data) => {
-              data[0].savings = afterDiscountObj.savings
-              data[0].totalPriceAfterDiscount = afterDiscountObj.totalPriceAfterDiscount
-              return res.status(200).json(data)
-            })
-        } else if (afterDiscountObj.newRemainingUses || afterDiscountObj.newRemainingUses === 0) {
+function useDiscountCode(discountCode, remainingUses, timesUsed) {
+  return knex('discount_codes')
+    .select('*')
+    .where('discountCode', discountCode)
+    .update({remainingUses, timesUsed});
+}
 
-          knex('discount_codes')
-            .select('*')
-            .where('discountCode', discountCode)
-            .update({
-              remainingUses: afterDiscountObj.newRemainingUses,
-              totalPriceAfterDiscount: afterDiscountObj.totalPriceAfterDiscount,
-              timesUsed: afterDiscountObj.timesUsed
-            })
-            .returning(['id', 'remainingUses', 'totalPriceAfterDiscount', 'timesUsed', 'type'])
-            .then((data) => {
-              data[0].savings = afterDiscountObj.savings
-              return res.status(200).json(data)
-            })
-        }
-
-      })
-      .catch(error => {
-        console.error(error);
-        return res.status(500).json({message: 'An unknown error occurred.'});
-      });
-  }
-})
+function useDiscountCodeEvent(discountCodeId, eventId, timesUsedThisEvent) {
+  return knex('discount_codes_events')
+    .select('*')
+    .where('discountCodeId', discountCodeId)
+    .andWhere('eventsId', eventId)
+    .update({timesUsedThisEvent});
+}
 
 //Delete (delete one of the resource)
 // router.delete('/:id', function(req, res, next) {
