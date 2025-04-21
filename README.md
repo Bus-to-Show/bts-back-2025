@@ -50,3 +50,9 @@ Heroku dashboard: https://dashboard.heroku.com/apps/blooming-fortress-13049/
 5. Populate the database tables with `npx knex seed:run`
 
 6. Run the API with `npm start`
+
+### Testing
+
+1. Ensure the server and database are running locally (using the instructions above)
+
+2. Run the tests with `node test/usersTest.js`
