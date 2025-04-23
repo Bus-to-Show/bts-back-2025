@@ -3,7 +3,7 @@
 class DiscountCodesController {
   data;
 
-  constructor({data}) {
+  constructor({ data }) {
     this.data = data;
   }
 
@@ -36,27 +36,30 @@ class DiscountCodesController {
       };
     }
 
+    // Type 1 is for Sponsor pick-up location reusable discount codes
     if (discountCodeObj.type === 1) {
       const discountCodeEventObj = await this.data.getDiscountCodeEvent(discountCodeObj.id, eventId);
 
-      if (!discountCodeEventObj) {
-        return {
-          status: 400,
-          message: 'Discount code not found for this event',
-        };
-      }
-
-      if (discountCodeEventObj.timesUsedThisEvent > 0) {
+      if (discountCodeEventObj && discountCodeEventObj.timesUsedThisEvent >= discountCodeObj.usesPerEvent) {
         return {
           status: 200,
-          message: 'Discount code has already been used for this event',
+          message: 'Discount code has already been used up for this event',
         };
       }
 
-      await this.data.useDiscountCodeEvent(discountCodeObj.id, eventId, 1);
+      const currentRemainingUses = discountCodeObj.usesPerEvent - (discountCodeEventObj ? discountCodeEventObj.timesUsedThisEvent : 0);
+      const timesUsedThisOrder = Math.min(currentRemainingUses, ticketQuantity);
+
+      if (!discountCodeEventObj) {
+        await this.data.createDiscountCodeEvent(discountCodeObj.id, eventId, timesUsedThisOrder);
+      }
+      else {
+        await this.data.useDiscountCodeEvent(discountCodeObj.id, eventId, timesUsedThisOrder);
+      }
 
       const pricePerTicket = totalPrice / ticketQuantity;
-      const totalSavings = this.formatCurrency(pricePerTicket);
+      const savingsPerTicket = pricePerTicket * (discountCodeObj.percentage / 100);
+      const totalSavings = this.formatCurrency(savingsPerTicket * timesUsedThisOrder);
       const totalPriceAfterDiscount = this.formatCurrency(totalPrice - totalSavings);
 
       return {
@@ -67,6 +70,7 @@ class DiscountCodesController {
       };
     }
 
+    // Type 2 is for one-time use discount codes
     if (discountCodeObj.remainingUses < 1) {
       return {
         status: 200,
@@ -109,6 +113,7 @@ class DiscountCodesController {
       status: 200,
       message: 'Discount code released',
     };
+    // do I need to add releasing the discount code event too?
   }
 
   formatCurrency(amount) {

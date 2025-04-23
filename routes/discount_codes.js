@@ -6,82 +6,79 @@ const knex = require('../knex.js')
 
 const DiscountCodesController = require('../controllers/DiscountCodesController.js');
 const data = require('../data/discount_codes.js');
-const controller = new DiscountCodesController({data});
+const controller = new DiscountCodesController({ data });
 
 //List (get all of the resource)
 router.get('/', function (req, res, next) {
-    knex('discount_codes')
-      .select('id', 'discountCode', 'percentage', 'expiresOn', 'issuedOn', 'issuedTo', 'issuedBy', 'issuedBecause', 'timesUsed', 'type', 'remainingUses', 'usesPerEvent')
-      .then((data) => {
-        res.status(200).json(data)
-      })
+  knex('discount_codes')
+    .select('id', 'discountCode', 'percentage', 'expiresOn', 'issuedOn', 'issuedTo', 'issuedBy', 'issuedBecause', 'timesUsed', 'type', 'remainingUses', 'usesPerEvent')
+    .then((data) => {
+      res.status(200).json(data)
+    })
 })
-
 
 //Read (get one of the resource)
 // Get One
 router.get('/:id', function (req, res, next) {
-    knex('discount_codes')
-      .select('id', 'discountCode', 'percentage', 'expiresOn', 'issuedOn', 'issuedTo', 'issuedBy', 'issuedBecause', 'timesUsed', 'type', 'remainingUses', 'usesPerEvent')
-      .where('id', req.params.id)
-      .then((data) => {
-        res.status(200).json(data[0])
-      })
+  knex('discount_codes')
+    .select('id', 'discountCode', 'percentage', 'expiresOn', 'issuedOn', 'issuedTo', 'issuedBy', 'issuedBecause', 'timesUsed', 'type', 'remainingUses', 'usesPerEvent')
+    .where('id', req.params.id)
+    .then((data) => {
+      res.status(200).json(data[0])
+    })
 })
 
+// Get discount code for a specific user and event
 router.get('/:user_id/:event_id', function (req, res, next) {
-    knex('users')
-      .select('email')
-      .where('id', req.params.user_id)
-      .first()
-      .then((user) => {
-        knex.raw("SELECT date FROM events WHERE id = ?::integer", [req.params.event_id])
-          .then((eventRaw) => {
-            const event = eventRaw.rows[0];
-            knex('discount_codes')
-              .select('discountCode', 'id')
-              .where('issuedTo', user.email)
-              .andWhere('type', 1)
-              .andWhere('expiresOn', '>=', knex.raw("to_date(?, 'MM/DD/YYYY')", [event.date]))
-              .first()
-              .then((discountCode) => {
-                if (discountCode) {
-                  knex('discount_codes_events')
-                    .select(['timesUsedThisEvent'])
-                    .where('discountCodeId', discountCode.id)
-                    .andWhere('eventsId', req.params.event_id)
-                    .first()
-                    .then((discountCodeEvent) => {
-                      if (discountCodeEvent && discountCodeEvent.timesUsedThisEvent > 0) {
-                        res.status(200).json({
-                          message: "Season pass discount code has already been applied.",
-                          discountCode: discountCode.discountCode,
-                          alreadyApplied: true
-                        });
-                      } else {
-                        res.status(200).json({
-                          message: "Season pass discount code is available.",
-                          discountCode: discountCode.discountCode,
-                          alreadyApplied: false
-                        });
-                      }
-                    });
-                } else {
-                  res.status(200).json({
-                    message: "No valid season pass discount code found.",
-                    discountCode: null
+  knex('users')
+    .select('email')
+    .where('id', req.params.user_id)
+    .first()
+    .then((user) => {
+      knex.raw("SELECT date FROM events WHERE id = ?::integer", [req.params.event_id])
+        .then((eventRaw) => {
+          const event = eventRaw.rows[0];
+          knex('discount_codes')
+            .select('discountCode', 'id')
+            .where('issuedTo', user.email)
+            .andWhere('type', 1)
+            .andWhere('expiresOn', '>=', knex.raw("to_date(?, 'MM/DD/YYYY')", [event.date]))
+            .first()
+            .then((discountCode) => {
+              if (discountCode) {
+                knex('discount_codes_events')
+                  .select(['timesUsedThisEvent'])
+                  .where('discountCodeId', discountCode.id)
+                  .andWhere('eventsId', req.params.event_id)
+                  .first()
+                  .then((discountCodeEvent) => {
+                    if (discountCodeEvent && discountCodeEvent.timesUsedThisEvent > 0) {
+                      res.status(200).json({
+                        message: "Season pass discount code has already been applied.",
+                        discountCode: discountCode.discountCode,
+                        alreadyApplied: true
+                      });
+                    } else {
+                      res.status(200).json({
+                        message: "Season pass discount code is available.",
+                        discountCode: discountCode.discountCode,
+                        alreadyApplied: false
+                      });
+                    }
                   });
-                }
-              });
-          });
-      })
-      .catch((error) => {
-        res.status(500).json({ message: "Error fetching data.", error });
-      });
+              } else {
+                res.status(200).json({
+                  message: "No valid season pass discount code found.",
+                  discountCode: null
+                });
+              }
+            });
+        });
+    })
+    .catch((error) => {
+      res.status(500).json({ message: "Error fetching data.", error });
+    });
 });
-
-
-
 
 //Create (create one of the resource)
 router.post('/', function (req, res, next) {
@@ -122,13 +119,13 @@ router.patch('/return/:id', function (req, res, next) {
 router.patch('/', async (req, res, next) => {
   try {
     if (req.body.applyOrRelease === 'release') {
-      const {status, ...rest} = await controller.releaseDiscountCode(req.body);
+      const { status, ...rest } = await controller.releaseDiscountCode(req.body);
       return res.status(status).json(rest);
     }
-
-    const {status, ...rest} = await controller.applyDiscountCode(req.body);
+    const { status, ...rest } = await controller.applyDiscountCode(req.body);
     return res.status(status).json(rest);
-  } catch (error) {
+  }
+  catch (error) {
     next(error);
   }
 });
