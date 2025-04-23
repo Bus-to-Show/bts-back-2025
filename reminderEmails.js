@@ -36,15 +36,17 @@ const actuallySend = async (emailAddress, emailBody) => {
 }
 
 // Helper function to generate the email body
-const generateEmailBody = (partyOrder, venue, date, headliner, support1, support2, support3, locationName, street, load, depart, convert24hStringToAmPmTime) => {
+const generateEmailBody = (partyOrder, venue, date, headliner, locationName, street, load, depart, convert24hStringToAmPmTime) => {
+  const firstBusLoadTimeIsSet = (load !== null && load !== undefined && load !== '' && load !== depart);
+
   return `
 Hi ${partyOrder.orderFirst}! Thank you for riding with Bus to Show!
 
-This is a quick note to remind you about the upcoming bus trip to ${venue} on ${date} for ${headliner}${support1 ? ', ' + support1 : ''}${support2 ? ', ' + support2 : ''}${support3 ? ', & ' + support3 : ''}.
+This is a quick note to remind you about the upcoming bus trip to ${venue} on ${date} for ${headliner}.
 
 You currently have ${partyOrder.count === 1 ? partyOrder.count + ' spot' : partyOrder.count + ' spots'} reserved, which can be claimed at check-in by yourself (${partyOrder.orderFirst} ${partyOrder.orderLast}) or anyone else you listed when you placed your order${(partyOrder.reservations[0].willFirst !== partyOrder.orderFirst || partyOrder.reservations[0].willLast !== partyOrder.orderLast) ? ' (' + partyOrder.reservations[0].willFirst + ' ' + partyOrder.reservations[0].willLast + ')' : ''}.
 
-Your pick-up location is ${locationName}, ${street} with ${load !== depart ? 'check-in and first bus loading at ' + convert24hStringToAmPmTime(load) + ', and ' : ''}last call for departure at ${convert24hStringToAmPmTime(depart)}. Please show up at least 10-15 min before last call and bring a legal ID for name and age verification (we're 18+ unless you have your parent/guardian email reservations@bustoshow.org with a photo ID and permission note).
+Your pick-up location is ${locationName}, ${street} with ${firstBusLoadTimeIsSet ? 'check-in and first bus loading at ' + convert24hStringToAmPmTime(load) + ', and ' : ''}last call for departure at ${convert24hStringToAmPmTime(depart)}. Please show up at least 10-15 min before last call and bring a legal ID for name and age verification (we're 18+ unless you have your parent/guardian email reservations@bustoshow.org with a photo ID and permission note).
 
 Okay, I think that's everything. Thanks again, we'll see you soon!
 
@@ -189,7 +191,7 @@ const sendReminders = () => {
 
                   for (const partyOrder in partyOrders) {
                     const emailBody = generateEmailBody(
-                      partyOrders[partyOrder], venue, date, headliner, support1, support2, support3, locationName, street, load, depart,
+                      partyOrders[partyOrder], venue, date, headliner, locationName, street, load, depart,
                       convert24hStringToAmPmTime
                     );
 

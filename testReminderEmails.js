@@ -8,6 +8,7 @@ const reminderEmails = require('./reminderEmails'); // Import the reminderEmails
     // This is commented out to prevent sending emails during testing
     //    I suggest overriding the email `to` field in the function BEFORE testing
 
+    // be sure EMAIL_PASS env var is set
     // await reminderEmails.sendReminders();
     console.log('sendReminders executed successfully.');
   } catch (error) {
