@@ -24,12 +24,23 @@ function useDiscountCode(discountCode, remainingUses, timesUsed) {
     .update({remainingUses, timesUsed});
 }
 
+// I was trying to think of a way to upsert the discount code event but
+// it doesn't appear that knex supports upserts for Postgres...
 function useDiscountCodeEvent(discountCodeId, eventId, timesUsedThisEvent) {
   return knex('discount_codes_events')
     .select('*')
     .where('discountCodeId', discountCodeId)
     .andWhere('eventsId', eventId)
-    .update({timesUsedThisEvent});
+    .increment({timesUsedThisEvent: timesUsedThisEvent});
+}
+
+function createDiscountCodeEvent(discountCodeId, eventId, timesUsedThisEvent) {
+  return knex('discount_codes_events')
+    .insert({
+      discountCodeId,
+      eventsId: eventId,
+      timesUsedThisEvent: timesUsedThisEvent,
+    });
 }
 
 function releaseDiscountCodeEvent(discountCode, eventId) {
@@ -48,5 +59,6 @@ module.exports = {
   getDiscountCodeEvent,
   useDiscountCode,
   useDiscountCodeEvent,
+  createDiscountCodeEvent,
   releaseDiscountCodeEvent,
 };
