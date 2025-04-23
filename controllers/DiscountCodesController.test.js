@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const DiscountCodesController = require('./DiscountCodesController.js');
+const { use } = require('../routes/discount_codes.js');
 
 function makeRelativeDate(addYears) {
   const date = new Date();
@@ -11,7 +12,7 @@ function makeRelativeDate(addYears) {
   return date;
 }
 
-test('invalid request', async () => {
+test('invalid request, no event ID', async () => {
   const controller = new DiscountCodesController({});
 
   const result = await controller.applyDiscountCode({
@@ -66,40 +67,16 @@ test('discount code expired', async () => {
   assert.equal(result.message, 'Discount code expired');
 });
 
-test('type = 1, discount code event not found', async () => {
+test('type = 1, reusable discount code used up for event', async () => {
   const discountCode = {
     expiresOn: makeRelativeDate(1),
     type: 1,
     id: 1,
-  };
-
-  const data = {
-    getDiscountCode: () => discountCode,
-    getDiscountCodeEvent: () => undefined,
-  };
-
-  const controller = new DiscountCodesController({data});
-
-  const result = await controller.applyDiscountCode({
-    discountCode: '1FREE',
-    totalPrice: 66,
-    ticketQuantity: 2,
-    eventId: 1,
-  });
-
-  assert.equal(result.status, 400);
-  assert.equal(result.message, 'Discount code not found for this event');
-});
-
-test('type = 1, discount code used', async () => {
-  const discountCode = {
-    expiresOn: makeRelativeDate(1),
-    type: 1,
-    id: 1,
+    usesPerEvent: 2,
   };
 
   const discountCodeEvent = {
-    timesUsedThisEvent: 1,
+    timesUsedThisEvent: 2,
   };
 
   const data = {
@@ -117,19 +94,55 @@ test('type = 1, discount code used', async () => {
   });
 
   assert.equal(result.status, 200);
-  assert.equal(result.message, 'Discount code has already been used for this event');
+  assert.equal(result.message, 'Discount code has already been used up for this event');
 });
 
-test('type = 1, discount code unused', async () => {
+test('type = 1, discount code applied to new event', async () => {
   const discountCode = {
     expiresOn: makeRelativeDate(1),
     type: 1,
     id: 1,
+    usesPerEvent: 2,
+    percentage: 100,
   };
 
   const data = {
     getDiscountCode: () => discountCode,
-    getDiscountCodeEvent: () => new Object(),
+    getDiscountCodeEvent: () => undefined,
+    createDiscountCodeEvent: () => new Object(),
+  };
+
+  const controller = new DiscountCodesController({data});
+
+  const result = await controller.applyDiscountCode({
+    discountCode: 'FireFreeRides',
+    totalPrice: 66,
+    ticketQuantity: 2,
+    eventId: 1,
+  });
+
+  assert.equal(result.status, 200);
+  assert.equal(result.discountCodeId, 1);
+  assert.equal(result.totalSavings, '66.00');
+  assert.equal(result.totalPriceAfterDiscount, '0.00');
+});
+
+test('type = 1, discount code used once for event', async () => {
+  const discountCode = {
+    expiresOn: makeRelativeDate(1),
+    type: 1,
+    id: 1,
+    percentage: 100,
+    usesPerEvent: 2,
+  };
+
+  const discountCodeEvent = {
+    timesUsedThisEvent: 1,
+  };
+
+  const data = {
+    getDiscountCode: () => discountCode,
+    getDiscountCodeEvent: () => discountCodeEvent,
     useDiscountCodeEvent: () => new Object(),
   };
 
@@ -148,13 +161,13 @@ test('type = 1, discount code unused', async () => {
   assert.equal(result.totalPriceAfterDiscount, '33.00');
 });
 
-test('type != 1, discount code used', async () => {
+test('type != 1, one-time discount code already used up', async () => {
   const discountCode = {
     expiresOn: makeRelativeDate(1),
     type: 2,
     remainingUses: 0,
     timesUsed: 2,
-    percentage: 20,
+    percentage: 100,
     id: 1,
   };
 
@@ -180,7 +193,7 @@ test('type != 1, remaining uses < ticket quantity', async () => {
     expiresOn: makeRelativeDate(1),
     type: 2,
     remainingUses: 1,
-    timesUsed: 2,
+    timesUsed: 1,
     percentage: 20,
     id: 1,
   };
@@ -233,4 +246,31 @@ test('type != 1, remaining uses > ticket quantity', async () => {
   assert.equal(result.discountCodeId, 1);
   assert.equal(result.totalSavings, '13.20');
   assert.equal(result.totalPriceAfterDiscount, '52.80');
+});
+
+test('release discount code', async () => {
+  const data = {
+    releaseDiscountCode: () => new Object(),
+  };
+
+  const controller = new DiscountCodesController({data});
+
+  const result = await controller.releaseDiscountCode({
+    discountCode: '1FREE',
+    eventId: 1,
+  });
+
+  assert.equal(result.status, 200);
+  assert.equal(result.message, 'Discount code released');
+});
+
+test('release discount code, invalid request', async () => {
+  const controller = new DiscountCodesController({});
+
+  const result = await controller.releaseDiscountCode({
+    discountCode: '1FREE',
+  });
+
+  assert.equal(result.status, 400);
+  assert.equal(result.message, 'Invalid request');
 });
