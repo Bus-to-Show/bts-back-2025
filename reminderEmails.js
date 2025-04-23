@@ -25,15 +25,34 @@ const actuallySend = async (emailAddress, emailBody) => {
       from: 'updates@bustoshow.org',
       to: emailAddress,
       bcc: 'reservations@bustoshow.org',
-      subject: `Your Bus to Show Event Details` ,
+      subject: `Your Bus to Show Event Details`,
       text: emailBody
     });
-
     console.log('Email sent', info);
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Email not sent', error);
   }
 }
+
+// Helper function to generate the email body
+const generateEmailBody = (partyOrder, venue, date, headliner, locationName, street, load, depart, convert24hStringToAmPmTime) => {
+  const firstBusLoadTimeIsSet = (load !== null && load !== undefined && load !== '' && load !== depart);
+
+  return `
+Hi ${partyOrder.orderFirst}! Thank you for riding with Bus to Show!
+
+This is a quick note to remind you about the upcoming bus trip to ${venue} on ${date} for ${headliner}.
+
+You currently have ${partyOrder.count === 1 ? partyOrder.count + ' spot' : partyOrder.count + ' spots'} reserved, which can be claimed at check-in by yourself (${partyOrder.orderFirst} ${partyOrder.orderLast}) or anyone else you listed when you placed your order${(partyOrder.reservations[0].willFirst !== partyOrder.orderFirst || partyOrder.reservations[0].willLast !== partyOrder.orderLast) ? ' (' + partyOrder.reservations[0].willFirst + ' ' + partyOrder.reservations[0].willLast + ')' : ''}.
+
+Your pick-up location is ${locationName}, ${street} with ${firstBusLoadTimeIsSet ? 'check-in and first bus loading at ' + convert24hStringToAmPmTime(load) + ', and ' : ''}last call for departure at ${convert24hStringToAmPmTime(depart)}. Please show up at least 10-15 min before last call and bring a legal ID for name and age verification (we're 18+ unless you have your parent/guardian email reservations@bustoshow.org with a photo ID and permission note).
+
+Okay, I think that's everything. Thanks again, we'll see you soon!
+
+Love always, BTS.
+`;
+};
 
 const sendReminders = () => {
   console.log('sendReminders fired')
@@ -135,7 +154,7 @@ const sendReminders = () => {
 
         if (countVal === 1) {
           countVal += 1
-          console.log('countVal ', countVal)
+          console.log('countVal', countVal)
 
           formattedEmailList.forEach(show => {
             if (countVal < 2 + formattedEmailList.length) {
@@ -167,26 +186,14 @@ const sendReminders = () => {
                     hours = (hours % 12) || 12
                     hours = hours.toString()
                     amPmTime = `${hours}:${minutes} ${amOrPm}`
-                    console.log('amPmTime ====> ', amPmTime)
+                    return amPmTime
                   }
 
                   for (const partyOrder in partyOrders) {
-                    const emailBody = `${partyOrders[partyOrder].orderFirst}! Thank you for riding with Bus to Show!
-                      This is a quick note to remind you about the upcoming bus trip
-                      to ${venue} on ${date} for ${headliner}${
-                        + support1 ? ', ' + support1 : ''
-                        + support2 ? ', ' + support2 : ''
-                        + support3 ? ', & ' + support3 : ''}.
-                      You currently have ${partyOrders[partyOrder].count == 1 ? partyOrders[partyOrder].count + ' spot' : partyOrders[partyOrder].count + ' spots'} reserved, which can be claimed at
-                      check-in by yourself (${partyOrders[partyOrder].orderFirst} ${partyOrders[partyOrder].orderLast}) or anyone else you listed when you placed your order${
-                        (partyOrders[partyOrder].reservations[0].willFirst != partyOrders[partyOrder].orderFirst || partyOrders[partyOrder].reservations[0].willLast != partyOrders[partyOrder].orderLast)
-                        ? ' (' + partyOrders[partyOrder].reservations[0].willFirst + ' ' + partyOrders[partyOrder].reservations[0].willLast + ')'
-                        : ''
-                      }. Also, here are the pickup details.... check-in location is ${locationName},
-                      ${street} with ${load != depart ? 'check in and first bus loading at ' + convert24hStringToAmPmTime(load) +', and ': ''}last call for departure at ${convert24hStringToAmPmTime(depart)}.
-                      Please show up at least 10-15 min before last call and bring a legal id for name and age verification (we're 18+ unless you have your parent/guardian email reservations@bustoshow.org with a photo id and permission note).
-                      Okay, I think that's everything. Thanks again, we'll see you soon! Love always, BTS.
-                    `
+                    const emailBody = generateEmailBody(
+                      partyOrders[partyOrder], venue, date, headliner, locationName, street, load, depart,
+                      convert24hStringToAmPmTime
+                    );
 
                     actuallySend(partyOrders[partyOrder].email, emailBody)
                     console.log('emailBody created ====>  ', date)
@@ -201,4 +208,4 @@ const sendReminders = () => {
   })
 }
 
-module.exports = {sendReminders}
+module.exports = { sendReminders }
