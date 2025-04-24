@@ -12,7 +12,6 @@ const JWT_KEY = process.env.JWT_KEY
 const verifyToken = require('./api').verifyToken
 
 
-
 //List (get all of the resource)
 router.get('/', verifyToken, function (req, res, next) {
   jwt.verify(req.token, JWT_KEY, (err, authData) => {
@@ -27,8 +26,6 @@ router.get('/', verifyToken, function (req, res, next) {
     }
   })
 })
-
-
 
 
 //Get All reservations associated with a userId (passed in as req.params.id)
@@ -98,12 +95,44 @@ router.post('/', function (req, res, next) {
       .then((data) => {
         return data[0]
       })
-  }
+  };
+
+  const generateConfirmationEmailBody = (
+    ticketQuantity,
+    result, // needed properties: result.locationName, result.streetAddress, result.headliner, result.venue, result.date, result.lastBusDepartureTime
+    convertTime,
+    firstName,
+    lastName,
+    willCallFirstName,
+    willCallLastName,
+    sponsorDeals,
+  ) => {
+    const sponsorName = result.locationName.split(" - ")[1];
+
+    return `
+Hi ${firstName} ${lastName}! Thank you for riding with Bus to Show!
+
+You have ${ticketQuantity} round-trip ${ticketQuantity === 1 ? 'seat' : 'seats'} reserved under check-in name [${willCallFirstName} ${willCallLastName}] departing from ${result.locationName}, ${result.streetAddress} and going to ${result.headliner} at ${result.venue} on ${result.date}. 
+
+Last call / bus departure is currently ${convertTime(result.lastBusDepartureTime)}. Please show up at least 10-15 minutes before that to check in. Make sure everyone in your group has their IDs, even if they aren't the ones who bought their ticket (see instructions below for anyone under 18). If we have enough demand for multiple buses, we will usually start loading the first bus 30-60 min earlier, and sending them out as soon as they are full. Even better, come early to enjoy the deals our pick-up locations offer just for our riders!!
+${sponsorDeals[sponsorName] ? "\n" + sponsorName + " offers Bus to Show riders:\n" : ""}${sponsorDeals[sponsorName] ? sponsorDeals[sponsorName].map(deal => " * " + deal).join("\n") : ""}
+PLEASE NOTE: Time adjustments do occasionally happen (when show times change, for example, because we don't want you missing music). The most up-to-date departure times are always available on our website. We'll send out emails to let you know whenever a change occurs, but just to be safe, please go to the website again and double check the times day-of. There are no refunds for missing the bus.
+
+Under 18? No problem - anyone under 18 just needs to have a parent/guardian send an email to reservations@bustoshow.org including explicit permission to ride Bus to Show, their name and a picture of their ID, their kid's name (yours), and the date of the show. Then, just show your ID and that email at check-in and you're good to go!!
+
+Can't wait to get this bus party going!!
+
+Love,
+Bus to Show, Inc.
+(844) BUS-SHOW [844.287.7469]
+reservations@bustoshow.org
+bustoshow.org
+`;
+  };
 
   let newPickupPartyId
   let newOrderId
-  const currentEventId = req.body.eventId
-  let userDiscountCode = req.body.discountCode ? req.body.discountCode : null
+
   if (!firstName || !lastName || !email) {
     res.status(404).send('Please include first name, last name, and email!')
     return null
@@ -112,6 +141,46 @@ router.post('/', function (req, res, next) {
     res.status(404).send('Please include pickup location, event, and ticket quantity!')
     return null
   }
+  const sponsorDeals = {
+    'College Inn': [
+      '$6.50 Pony Rider: Montucky & shot of well whiskey or tequila',
+      '$10 Day Drinker: NÜTRL & shot of Pink Whitney',
+      '$7 Dill-Light: Bud Light Draft & pickle shot',
+      '$8.50 Mexican Lunchbox: Estrella Jalisco draft & shot of Camarena',
+    ],
+    "Wyman's No. 5": [
+      "$8 Dew 'n a Blue: Labatt Blue and shot of Tullamore dew",
+      "$3 Cheese slice",
+      "$4 Pepperoni slice",
+      "$10 Day Drinker: NÜTRL & shot of Pink Whitney",
+      "$7 Pink Pony: Montucky"
+    ],
+    "Three Dogs Tavern": [
+      "$3.25 Montucky",
+      "$5 Stadium Nachos",
+      "$5 Taquitos",
+      "$5 Pretzel Bites",
+      "$8.50 Mexican Lunchbox: Estrella Jalisco draft & shot of camarena"
+    ],
+    "Bierstadt Lagerhaus": [
+      "$2 off soft pretzels",
+      "$2 off a liter of Helles",
+      "Free water with purchase"
+    ],
+    "Fire on the Mountain": [
+      "$8 medium fry/tot",
+      "$11 loaded FOTM fries (basket of fries or tots, tossed in Medium Buffalo sauce, topped with blue cheese crumbles and green onion)",
+      "$4 cans of Montucky, PBR, Rainer, NA Kolsch, Thirst Mutilator NA"
+    ],
+    "Front Range Inn": [
+      "$10 2x Herradura tequila ($4 off)",
+      "$10 2x Jack Daniel's whiskey ($2 off)",
+      "$10 2x Titos vodka ($2 off)",
+      "$10 cauliflower wings ($3 off)",
+      "$10 pretzel bites ($1 off)",
+      "$15 BTS (Burger to Show) - signature burger details TBD"
+    ]
+  };
 
   knex('orders')
     .insert({
@@ -164,7 +233,7 @@ router.post('/', function (req, res, next) {
             from: 'updates@bustoshow.org',
             to: result.email,
             subject: 'Your Bus to Show Order Confirmation',
-            text: `Thank you for riding with Bus to Show!  You have reserved ${ticketQuantity} round-trip seat(s) departing from ${result.locationName} : ${result.streetAddress} and going to ${result.headliner} at ${result.venue} on ${result.date}. The currently scheduled last call time is ${convertTime(result.lastBusDepartureTime)}, and if we have enough demand for multiple buses, we will usually start loading the first bus 30-60 min earlier, and sending them out as soon as they are full.  PLEASE NOTE: Time adjustments do occasionally happen.  The most recently updated departure time ranges are always current on the website.  So, when the event gets closer, please go to the website again and double check the times. There are no refunds for missing the bus. With that said, we try never move last call times earlier unless it is an emergency, and if that happens, we will send lots of communication with lots of advance notice, and give you an opportunity to cancel if the new time doesn't work for you. Otherwise, just bring the ID of the person who ordered the tickets (${firstName} ${lastName}) or, if applicable, the person you chose for will call (${willCallFirstName} ${willCallLastName}...(defaults to ordered by name if you left it blank)) to the departure location, and be ready to have a great time!`
+            text: generateConfirmationEmailBody(ticketQuantity, result, convertTime, firstName, lastName, willCallFirstName, willCallLastName, sponsorDeals)
           }, function (error, info) {
             if (error) {
               console.error('Email not sent', error);
