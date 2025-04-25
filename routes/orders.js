@@ -12,40 +12,37 @@ const JWT_KEY = process.env.JWT_KEY
 const verifyToken = require('./api').verifyToken
 
 
-
 //List (get all of the resource)
 router.get('/', verifyToken, function (req, res, next) {
-    jwt.verify(req.token, JWT_KEY, (err, authData) => {
-      if(err){
-        res.sendStatus(403)
-      } else {
-        knex('orders')
+  jwt.verify(req.token, JWT_KEY, (err, authData) => {
+    if (err) {
+      res.sendStatus(403)
+    } else {
+      knex('orders')
         .select('*')
         .then((data) => {
           res.status(200).json(data)
         })
-      }
-    })
+    }
+  })
 })
 
 
-
-
 //Get All reservations associated with a userId (passed in as req.params.id)
-router.get('/:id', function(req, res, next){
+router.get('/:id', function (req, res, next) {
   knex('orders')
-  .select('orderedByFirstName', 'orderedByLastName', 'orderedByEmail', 'userId', 'orderId', 'willCallFirstName', 'willCallLastName', 'status', 'lastBusDepartureTime', 'firstBusLoadTime', 'city', 'locationName', 'streetAddress', 'date', 'venue', 'headliner', 'support1', 'support2', 'support3', 'headlinerBio', 'headlinerImgLink' )
-  .join('reservations', 'orders.id', '=', 'reservations.orderId')
-  .select('reservations.id as reservationsId')
-  .join('pickup_parties', 'reservations.pickupPartiesId', '=', 'pickup_parties.id')
-  .join('pickup_locations', 'pickup_locations.id', '=', 'pickup_parties.pickupLocationId')
-  .join('events', 'events.id', '=', 'pickup_parties.eventId')
-  .select('events.id as eventsId')
-  .orderBy('date')
-  .where('orders.userId', req.params.id)
-  .then((data) => {
-    res.status(200).json(data)
-  })
+    .select('orderedByFirstName', 'orderedByLastName', 'orderedByEmail', 'userId', 'orderId', 'willCallFirstName', 'willCallLastName', 'status', 'lastBusDepartureTime', 'firstBusLoadTime', 'city', 'locationName', 'streetAddress', 'date', 'venue', 'headliner', 'support1', 'support2', 'support3', 'headlinerBio', 'headlinerImgLink')
+    .join('reservations', 'orders.id', '=', 'reservations.orderId')
+    .select('reservations.id as reservationsId')
+    .join('pickup_parties', 'reservations.pickupPartiesId', '=', 'pickup_parties.id')
+    .join('pickup_locations', 'pickup_locations.id', '=', 'pickup_parties.pickupLocationId')
+    .join('events', 'events.id', '=', 'pickup_parties.eventId')
+    .select('events.id as eventsId')
+    .orderBy('date')
+    .where('orders.userId', req.params.id)
+    .then((data) => {
+      res.status(200).json(data)
+    })
 })
 
 
@@ -88,22 +85,54 @@ router.post('/', function (req, res, next) {
     }
   });
 
-  const confirmatonDetailsQuery = () =>{
+  const confirmationDetailsQuery = () => {
     return knex('pickup_parties')
-    .join('events', 'events.id', '=', 'pickup_parties.eventId')
-    .join('pickup_locations', 'pickup_locations.id', '=', 'pickup_parties.pickupLocationId')
-    .where('eventId', eventId)
-    .where('pickupLocationId', pickupLocationId)
-    .select('events.date', 'events.headliner', 'events.venue', 'pickup_locations.locationName', 'pickup_locations.streetAddress', 'firstBusLoadTime', 'lastBusDepartureTime')
-    .then((data)=>{
-      return data[0]
-    })
-  }
+      .join('events', 'events.id', '=', 'pickup_parties.eventId')
+      .join('pickup_locations', 'pickup_locations.id', '=', 'pickup_parties.pickupLocationId')
+      .where('eventId', eventId)
+      .where('pickupLocationId', pickupLocationId)
+      .select('events.date', 'events.headliner', 'events.venue', 'pickup_locations.locationName', 'pickup_locations.streetAddress', 'firstBusLoadTime', 'lastBusDepartureTime')
+      .then((data) => {
+        return data[0]
+      })
+  };
+
+  const generateConfirmationEmailBody = (
+    ticketQuantity,
+    result, // needed properties: result.locationName, result.streetAddress, result.headliner, result.venue, result.date, result.lastBusDepartureTime
+    convertTime,
+    firstName,
+    lastName,
+    willCallFirstName,
+    willCallLastName,
+    sponsorDeals,
+  ) => {
+    const sponsorName = result.locationName.split(" - ")[1];
+
+    return `
+Hi ${firstName} ${lastName}! Thank you for riding with Bus to Show!
+
+You have ${ticketQuantity} round-trip ${ticketQuantity === 1 ? 'seat' : 'seats'} reserved under check-in name [${willCallFirstName} ${willCallLastName}] departing from ${result.locationName}, ${result.streetAddress} and going to ${result.headliner} at ${result.venue} on ${result.date}. 
+
+Last call / bus departure is currently ${convertTime(result.lastBusDepartureTime)}. Please show up at least 10-15 minutes before that to check in. Make sure everyone in your group has their IDs, even if they aren't the ones who bought their ticket (see instructions below for anyone under 18). If we have enough demand for multiple buses, we will usually start loading the first bus 30-60 min earlier, and sending them out as soon as they are full. Even better, come early to enjoy the deals our pick-up locations offer just for our riders!!
+${sponsorDeals[sponsorName] ? "\n" + sponsorName + " offers Bus to Show riders:\n" : ""}${sponsorDeals[sponsorName] ? sponsorDeals[sponsorName].map(deal => " * " + deal).join("\n") : ""}
+PLEASE NOTE: Time adjustments do occasionally happen (when show times change, for example, because we don't want you missing music). The most up-to-date departure times are always available on our website. We'll send out emails to let you know whenever a change occurs, but just to be safe, please go to the website again and double check the times day-of. There are no refunds for missing the bus.
+
+Under 18? No problem - anyone under 18 just needs to have a parent/guardian send an email to reservations@bustoshow.org including explicit permission to ride Bus to Show, their name and a picture of their ID, their kid's name (yours), and the date of the show. Then, just show your ID and that email at check-in and you're good to go!!
+
+Can't wait to get this bus party going!!
+
+Love,
+Bus to Show, Inc.
+(844) BUS-SHOW [844.287.7469]
+reservations@bustoshow.org
+bustoshow.org
+`;
+  };
 
   let newPickupPartyId
   let newOrderId
-  const currentEventId = req.body.eventId
-  let userDiscountCode = req.body.discountCode ? req.body.discountCode : null
+
   if (!firstName || !lastName || !email) {
     res.status(404).send('Please include first name, last name, and email!')
     return null
@@ -112,8 +141,48 @@ router.post('/', function (req, res, next) {
     res.status(404).send('Please include pickup location, event, and ticket quantity!')
     return null
   }
+  const sponsorDeals = {
+    'College Inn': [
+      '$6.50 Pony Rider: Montucky & shot of well whiskey or tequila',
+      '$10 Day Drinker: NÜTRL & shot of Pink Whitney',
+      '$7 Dill-Light: Bud Light Draft & pickle shot',
+      '$8.50 Mexican Lunchbox: Estrella Jalisco draft & shot of Camarena',
+    ],
+    "Wyman's No. 5": [
+      "$8 Dew 'n a Blue: Labatt Blue and shot of Tullamore dew",
+      "$3 Cheese slice",
+      "$4 Pepperoni slice",
+      "$10 Day Drinker: NÜTRL & shot of Pink Whitney",
+      "$7 Pink Pony: Montucky"
+    ],
+    "Three Dogs Tavern": [
+      "$3.25 Montucky",
+      "$5 Stadium Nachos",
+      "$5 Taquitos",
+      "$5 Pretzel Bites",
+      "$8.50 Mexican Lunchbox: Estrella Jalisco draft & shot of camarena"
+    ],
+    "Bierstadt Lagerhaus": [
+      "$2 off soft pretzels",
+      "$2 off a liter of Helles",
+      "Free water with purchase"
+    ],
+    "Fire on the Mountain": [
+      "$8 medium fry/tot",
+      "$11 loaded FOTM fries (basket of fries or tots, tossed in Medium Buffalo sauce, topped with blue cheese crumbles and green onion)",
+      "$4 cans of Montucky, PBR, Rainer, NA Kolsch, Thirst Mutilator NA"
+    ],
+    "Front Range Inn": [
+      "$10 2x Herradura tequila ($4 off)",
+      "$10 2x Jack Daniel's whiskey ($2 off)",
+      "$10 2x Titos vodka ($2 off)",
+      "$10 cauliflower wings ($3 off)",
+      "$10 pretzel bites ($1 off)",
+      "$15 BTS (Burger to Show) - signature burger details TBD"
+    ]
+  };
 
-    knex('orders')
+  knex('orders')
     .insert({
       userId: userId,
       orderedByFirstName: firstName,
@@ -128,67 +197,67 @@ router.post('/', function (req, res, next) {
     })
     .then((newOrderId) => {
       knex('pickup_parties')
-      .where({
-        eventId: eventId,
-        pickupLocationId: pickupLocationId,
-      })
-      .returning('*')
-      .then((newPickupParty) => {
-        newPickupPartyId = newPickupParty[0].id
-        let newOrdersArr = [newOrderId, newPickupPartyId]
-        return newOrdersArr
-      })
-      .then((ordersArr) => {
-        let ticketQuantity = req.body.ticketQuantity
-        let reservationsArr=[]
-        for(let ii = 0; ii < ticketQuantity; ii++){
-          reservationsArr.push({
-            orderId: ordersArr[0],
-            pickupPartiesId: ordersArr[1],
-            willCallFirstName: req.body.willCallFirstName,
-            willCallLastName: req.body.willCallLastName,
-            discountCodeId: req.body.discountCode
-          })
-        }
-        knex('reservations')
-        .insert(reservationsArr)
+        .where({
+          eventId: eventId,
+          pickupLocationId: pickupLocationId,
+        })
         .returning('*')
-        .then((newReservation) => {
-          res.status(200).json(newReservation[0])
+        .then((newPickupParty) => {
+          newPickupPartyId = newPickupParty[0].id
+          let newOrdersArr = [newOrderId, newPickupPartyId]
+          return newOrdersArr
         })
-      })
-      .then( async ()=>{
-        let result = await confirmatonDetailsQuery()
-        result.email = email
-        transporter.sendMail({
-          from: 'updates@bustoshow.org',
-          to: result.email,
-          subject: 'Your Bus to Show Order Confirmation',
-          text: `Thank you for riding with Bus to Show!  You have reserved ${ticketQuantity} round-trip seat(s) departing from ${result.locationName} : ${result.streetAddress} and going to ${result.headliner} at ${result.venue} on ${result.date}. The currently scheduled last call time is ${convertTime(result.lastBusDepartureTime)}, and if we have enough demand for multiple buses, we will usually start loading the first bus 30-60 min earlier, and sending them out as soon as they are full.  PLEASE NOTE: Time adjustments do occasionally happen.  The most recently updated departure time ranges are always current on the website.  So, when the event gets closer, please go to the website again and double check the times. There are no refunds for missing the bus. With that said, we try never move last call times earlier unless it is an emergency, and if that happens, we will send lots of communication with lots of advance notice, and give you an opportunity to cancel if the new time doesn't work for you. Otherwise, just bring the ID of the person who ordered the tickets (${firstName} ${lastName}) or, if applicable, the person you chose for will call (${willCallFirstName} ${willCallLastName}...(defaults to ordered by name if you left it blank)) to the departure location, and be ready to have a great time!`
-        }, function(error, info){
-          if (error) {
-            console.error('Email not sent', error);
-          } else {
-            console.log('Email sent', info);
+        .then((ordersArr) => {
+          let ticketQuantity = req.body.ticketQuantity
+          let reservationsArr = []
+          for (let ii = 0; ii < ticketQuantity; ii++) {
+            reservationsArr.push({
+              orderId: ordersArr[0],
+              pickupPartiesId: ordersArr[1],
+              willCallFirstName: req.body.willCallFirstName,
+              willCallLastName: req.body.willCallLastName,
+              discountCodeId: req.body.discountCode
+            })
           }
+          knex('reservations')
+            .insert(reservationsArr)
+            .returning('*')
+            .then((newReservation) => {
+              res.status(200).json(newReservation[0])
+            })
         })
-      })
-      .catch(err => {
-        res.status(400).json(err)
-      })
+        .then(async () => {
+          let result = await confirmationDetailsQuery()
+          result.email = email
+          transporter.sendMail({
+            from: 'updates@bustoshow.org',
+            to: result.email,
+            subject: 'Your Bus to Show Order Confirmation',
+            text: generateConfirmationEmailBody(ticketQuantity, result, convertTime, firstName, lastName, willCallFirstName, willCallLastName, sponsorDeals)
+          }, function (error, info) {
+            if (error) {
+              console.error('Email not sent', error);
+            } else {
+              console.log('Email sent', info);
+            }
+          })
+        })
+        .catch(err => {
+          res.status(400).json(err)
+        })
     })
-    })
+})
 
 
 //PATCH ROUTE ORDERS
-router.patch('/:id', function(req, res, next){
+router.patch('/:id', function (req, res, next) {
   knex('orders')
     .where('id', req.params.id)
     .update(req.body)
     .returning(['id', 'orderedByFirstName', 'orderedByLastName', 'orderedByEmail'])
-  .then((data) => {
-    res.status(200).json(data[0])
-  })
+    .then((data) => {
+      res.status(200).json(data[0])
+    })
 })
 
 //Delete (delete one of the resource)
@@ -202,14 +271,14 @@ router.patch('/:id', function(req, res, next){
 //   })
 // })
 
-router.post('/charge', async(req, res) => {
+router.post('/charge', async (req, res) => {
   stripe.customers.create({
     email: req.body.stripeEmail,
     source: req.body.stripeToken.id,
   })
-  .then(customer =>{
+    .then(customer => {
 
-    stripe.charges.create({
+      stripe.charges.create({
         amount: req.body.amount,
         description: req.body.eventId,
         currency: 'usd',
@@ -221,12 +290,12 @@ router.post('/charge', async(req, res) => {
         }
         return res.json(charge)
       }
-    )
-  })
-  .catch(error => {
-    console.error(error);
-    return res.status(500).json({message: 'An unknown error occurred.'});
-  });
+      )
+    })
+    .catch(error => {
+      console.error(error);
+      return res.status(500).json({ message: 'An unknown error occurred.' });
+    });
 })
 
 module.exports = router;
