@@ -14,35 +14,35 @@ const verifyToken = require('./api').verifyToken
 
 //List (get all of the resource)
 router.get('/', verifyToken, function (req, res, next) {
-  jwt.verify(req.token, JWT_KEY, (err, authData) => {
-    if (err) {
-      res.sendStatus(403)
-    } else {
-      knex('orders')
+    jwt.verify(req.token, JWT_KEY, (err, authData) => {
+      if(err){
+        res.sendStatus(403)
+      } else {
+        knex('orders')
         .select('*')
         .then((data) => {
           res.status(200).json(data)
         })
-    }
-  })
+      }
+    })
 })
 
 
 //Get All reservations associated with a userId (passed in as req.params.id)
-router.get('/:id', function (req, res, next) {
+router.get('/:id', function(req, res, next){
   knex('orders')
-    .select('orderedByFirstName', 'orderedByLastName', 'orderedByEmail', 'userId', 'orderId', 'willCallFirstName', 'willCallLastName', 'status', 'lastBusDepartureTime', 'firstBusLoadTime', 'city', 'locationName', 'streetAddress', 'date', 'venue', 'headliner', 'support1', 'support2', 'support3', 'headlinerBio', 'headlinerImgLink')
-    .join('reservations', 'orders.id', '=', 'reservations.orderId')
-    .select('reservations.id as reservationsId')
-    .join('pickup_parties', 'reservations.pickupPartiesId', '=', 'pickup_parties.id')
-    .join('pickup_locations', 'pickup_locations.id', '=', 'pickup_parties.pickupLocationId')
-    .join('events', 'events.id', '=', 'pickup_parties.eventId')
-    .select('events.id as eventsId')
-    .orderBy('date')
-    .where('orders.userId', req.params.id)
-    .then((data) => {
-      res.status(200).json(data)
-    })
+  .select('orderedByFirstName', 'orderedByLastName', 'orderedByEmail', 'userId', 'orderId', 'willCallFirstName', 'willCallLastName', 'status', 'lastBusDepartureTime', 'firstBusLoadTime', 'city', 'locationName', 'streetAddress', 'date', 'venue', 'headliner', 'support1', 'support2', 'support3', 'headlinerBio', 'headlinerImgLink' )
+  .join('reservations', 'orders.id', '=', 'reservations.orderId')
+  .select('reservations.id as reservationsId')
+  .join('pickup_parties', 'reservations.pickupPartiesId', '=', 'pickup_parties.id')
+  .join('pickup_locations', 'pickup_locations.id', '=', 'pickup_parties.pickupLocationId')
+  .join('events', 'events.id', '=', 'pickup_parties.eventId')
+  .select('events.id as eventsId')
+  .orderBy('date')
+  .where('orders.userId', req.params.id)
+  .then((data) => {
+    res.status(200).json(data)
+  })
 })
 
 
@@ -85,7 +85,7 @@ router.post('/', function (req, res, next) {
     }
   });
 
-  const confirmationDetailsQuery = () => {
+  const confirmatonDetailsQuery = () =>{
     return knex('pickup_parties')
       .join('events', 'events.id', '=', 'pickup_parties.eventId')
       .join('pickup_locations', 'pickup_locations.id', '=', 'pickup_parties.pickupLocationId')
@@ -182,7 +182,7 @@ bustoshow.org
     ]
   };
 
-  knex('orders')
+    knex('orders')
     .insert({
       userId: userId,
       orderedByFirstName: firstName,
@@ -246,18 +246,18 @@ bustoshow.org
           res.status(400).json(err)
         })
     })
-})
+    })
 
 
 //PATCH ROUTE ORDERS
-router.patch('/:id', function (req, res, next) {
+router.patch('/:id', function(req, res, next){
   knex('orders')
     .where('id', req.params.id)
     .update(req.body)
     .returning(['id', 'orderedByFirstName', 'orderedByLastName', 'orderedByEmail'])
-    .then((data) => {
-      res.status(200).json(data[0])
-    })
+  .then((data) => {
+    res.status(200).json(data[0])
+  })
 })
 
 //Delete (delete one of the resource)
@@ -271,14 +271,14 @@ router.patch('/:id', function (req, res, next) {
 //   })
 // })
 
-router.post('/charge', async (req, res) => {
+router.post('/charge', async(req, res) => {
   stripe.customers.create({
     email: req.body.stripeEmail,
     source: req.body.stripeToken.id,
   })
-    .then(customer => {
+  .then(customer =>{
 
-      stripe.charges.create({
+    stripe.charges.create({
         amount: req.body.amount,
         description: req.body.eventId,
         currency: 'usd',
@@ -290,12 +290,12 @@ router.post('/charge', async (req, res) => {
         }
         return res.json(charge)
       }
-      )
-    })
-    .catch(error => {
-      console.error(error);
-      return res.status(500).json({ message: 'An unknown error occurred.' });
-    });
+    )
+  })
+  .catch(error => {
+    console.error(error);
+    return res.status(500).json({message: 'An unknown error occurred.'});
+  });
 })
 
 module.exports = router;
