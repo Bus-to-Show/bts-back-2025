@@ -6,9 +6,9 @@ exports.seed = (knex) => {
       return knex('pickup_locations').insert([
         {
           id: 1,
-          streetAddress: '1313 College Ave, Boulder, CO 80302',
+          streetAddress: '14th St and College Ave, Boulder, CO 80302',
           city: 'Boulder',
-          locationName: 'Boulder - University Hill Cheba Hut',
+          locationName: 'Boulder (Uni Hill) - 14th & College',
           latitude: '40.007480',
           longitude: '-105.275870',
           type: 'standard',
@@ -26,9 +26,9 @@ exports.seed = (knex) => {
         },
         {
           id: 3,
-          streetAddress: '638 East Colfax Avenue, Denver, CO 80203',
+          streetAddress: '2033 E 13th Ave, Denver, CO 80206',
           city: 'Denver',
-          locationName: 'Denver - Colfax/Cap Hill Cheba Hut',
+          locationName: "Denver (Cap Hill) - Wyman's No. 5",
           latitude: '39.739770',
           longitude: '-104.979000',
           type: 'standard',
@@ -46,9 +46,9 @@ exports.seed = (knex) => {
         },
         {
           id: 5,
-          streetAddress: '3001 Walnut St, Denver, CO 80205',
+          streetAddress: '2875 Blake St, Denver, CO 80205',
           city: 'Denver',
-          locationName: 'Denver - RiNo Epic Brewing',
+          locationName: 'Denver (RiNo) - Bierstadt Lagerhaus',
           latitude: '39.763340',
           longitude: '-104.981410',
           type: 'standard',

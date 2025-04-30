@@ -20,14 +20,15 @@ class DiscountCodesController {
       };
     }
 
+    // both tables will be referenced for each discount code type
     const discountCodeObj = await this.data.getDiscountCode(discountCode);
-
     if (!discountCodeObj) {
       return {
         status: 400,
         message: 'Discount code not found',
       };
     }
+    const discountCodeEventObj = await this.data.getDiscountCodeEvent(discountCodeObj.id, eventId);
 
     if (Date.parse(discountCodeObj.expiresOn) < Date.now()) {
       return {
@@ -36,53 +37,36 @@ class DiscountCodesController {
       };
     }
 
-    // Type 1 is for Sponsor pick-up location reusable discount codes
-    if (discountCodeObj.type === 1) {
-      const discountCodeEventObj = await this.data.getDiscountCodeEvent(discountCodeObj.id, eventId);
-
-      if (discountCodeEventObj && discountCodeEventObj.timesUsedThisEvent >= discountCodeObj.usesPerEvent) {
-        return {
-          status: 200,
-          message: 'Discount code has already been used up for this event',
-        };
-      }
-
-      const currentRemainingUses = discountCodeObj.usesPerEvent - (discountCodeEventObj ? discountCodeEventObj.timesUsedThisEvent : 0);
-      const timesUsedThisOrder = Math.min(currentRemainingUses, ticketQuantity);
-
-      if (!discountCodeEventObj) {
-        await this.data.createDiscountCodeEvent(discountCodeObj.id, eventId, timesUsedThisOrder);
-      }
-      else {
-        await this.data.useDiscountCodeEvent(discountCodeObj.id, eventId, timesUsedThisOrder);
-      }
-
-      const pricePerTicket = totalPrice / ticketQuantity;
-      const savingsPerTicket = pricePerTicket * (discountCodeObj.percentage / 100);
-      const totalSavings = this.formatCurrency(savingsPerTicket * timesUsedThisOrder);
-      const totalPriceAfterDiscount = this.formatCurrency(totalPrice - totalSavings);
-
+    // Type 1 is for Sponsor pick-up location reusable discount codes (x times per event)
+    if (discountCodeObj.type === 1 && discountCodeEventObj && discountCodeEventObj.timesUsedThisEvent >= discountCodeObj.usesPerEvent) {
       return {
         status: 200,
-        discountCodeId: discountCodeObj.id,
-        totalSavings,
-        totalPriceAfterDiscount,
+        message: 'Discount code has already been used up for this event',
       };
     }
 
-    // Type 2 is for one-time use discount codes
-    if (discountCodeObj.remainingUses < 1) {
+    // Type 2 is for one-time single-use discount codes
+    if (discountCodeObj.type === 2 && discountCodeObj.remainingUses < 1) {
       return {
         status: 200,
         message: 'Discount code has no uses remaining',
       };
     }
 
-    const timesUsedThisOrder = Math.min(discountCodeObj.remainingUses, ticketQuantity);
-    const remainingUses = discountCodeObj.remainingUses - timesUsedThisOrder;
-    const timesUsed = discountCodeObj.timesUsed + timesUsedThisOrder;
+    const currentRemainingUses = discountCodeObj.usesPerEvent - (discountCodeEventObj ? discountCodeEventObj.timesUsedThisEvent : 0);
+    const timesUsedThisOrder = discountCodeObj.type === 2 ? Math.min(discountCodeObj.remainingUses, ticketQuantity) : Math.min(currentRemainingUses, ticketQuantity);
+    // remaining uses stays 0 for reusable type 1 codes
+    const newRemainingUses = discountCodeObj.type === 2 ? discountCodeObj.remainingUses - timesUsedThisOrder : 0;
+    const timesUsedSum = discountCodeObj.timesUsed + timesUsedThisOrder;
 
-    await this.data.useDiscountCode(discountCode, remainingUses, timesUsed);
+    // Update the discount code row with the new times used total and remaining uses
+    await this.data.useDiscountCode(discountCode, newRemainingUses, timesUsedSum);
+    if (!discountCodeEventObj) {
+      await this.data.addDiscountCodeEvent(discountCodeObj.id, eventId, timesUsedThisOrder, discountCodeObj.usesPerEvent);
+    }
+    else {
+      await this.data.useDiscountCodeEvent(discountCodeObj.id, eventId, timesUsedThisOrder, discountCodeObj.usesPerEvent);
+    }
 
     const pricePerTicket = totalPrice / ticketQuantity;
     const savingsPerTicket = pricePerTicket * (discountCodeObj.percentage / 100);
@@ -108,12 +92,26 @@ class DiscountCodesController {
       };
     }
 
-    await this.data.releaseDiscountCode(discountCode, eventId);
+    const discountCodeObj = await this.data.getDiscountCode(discountCode);
+    const discountCodeEventObj = await this.data.getDiscountCodeEvent(discountCodeObj.id, eventId);
+
+    if (!discountCodeObj && !discountCodeEventObj) {
+      return {
+        status: 400,
+        message: 'Discount code not found',
+      };
+    }
+
+    // renewedRemainingUses is only relevant for type 2 discount codes and should be 0 for type 1
+    const renewedRemainingUses = discountCodeObj.type === 2 ? discountCodeObj.remainingUses + discountCodeEventObj.timesUsedThisEvent : 0;
+    const decrementedTimesUsed = discountCodeObj.timesUsed - discountCodeEventObj.timesUsedThisEvent;
+    await this.data.releaseDiscountCode(discountCode, renewedRemainingUses, decrementedTimesUsed);
+    await this.data.releaseDiscountCodeEvent(discountCodeObj.id, eventId);
+
     return {
       status: 200,
       message: 'Discount code released',
     };
-    // do I need to add releasing the discount code event too?
   }
 
   formatCurrency(amount) {

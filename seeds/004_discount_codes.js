@@ -7,25 +7,27 @@ exports.seed = (knex) => {
         {
           id: 1,
           discountCode: '1FREE',
-          expiresOn: '2025-12-31',
+          expiresOn: '2026-12-31',
           issuedOn: '2023-04-21',
           issuedTo: 'BTS staff',
           issuedBy: 'DK',
           issuedBecause: 'Feeling generous',
           type: 2,
+          usesPerEvent: 0,
           remainingUses: 1,
-        },
-        {
+          percentage: 100
+        }, {
           id: 2,
           discountCode: 'FireFreeRides',
-          expiresOn: '2025-12-31',
+          expiresOn: '2026-12-31',
           issuedOn: '2023-04-21',
           issuedTo: 'FOTM staff',
           issuedBy: 'DK',
           issuedBecause: 'Pickup location',
-          timesUsed: 3,
+          timesUsed: 0,
           type: 1,
           usesPerEvent: 2,
+          percentage: 100
         },
       ]);
     })
