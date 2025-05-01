@@ -34,12 +34,14 @@ function useDiscountCode(discountCode, remainingUses, timesUsed) {
     .update({remainingUses, timesUsed});
 }
 
+// NOTE: new context, `usesPerEvent` means initial `remainingUses` for type 1 discount codes and `usesPerEvent` for type 2 discount codes
 function useDiscountCodeEvent(discountCodeId, eventId, timesUsedThisEvent, usesPerEvent) {
   return knex('discount_codes_events')
     .select('*')
     .where('discountCodeId', discountCodeId)
     .andWhere('eventsId', eventId)
-    .increment({timesUsedThisEvent, usesPerEvent});
+    .update({usesPerEvent})
+    .increment({timesUsedThisEvent});
 }
 
 function releaseDiscountCode(discountCode, remainingUses, timesUsed) {
@@ -49,12 +51,12 @@ function releaseDiscountCode(discountCode, remainingUses, timesUsed) {
     .update({remainingUses, timesUsed});
 }
 
-function releaseDiscountCodeEvent(discountCodeId, eventId) {
+function releaseDiscountCodeEvent(discountCodeId, eventId, timesUsedThisEvent = 0) {
   return knex('discount_codes_events')
     .select('*')
     .where('discountCodeId', discountCodeId)
     .andWhere('eventsId', eventId)
-    .update({timesUsedThisEvent: 0});
+    .increment({timesUsedThisEvent: -timesUsedThisEvent});
 }
 
 module.exports = {
