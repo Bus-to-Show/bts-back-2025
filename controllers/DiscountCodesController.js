@@ -1,6 +1,7 @@
 'use strict';
 
 const reservations = require('../data/reservations.js');
+const { sum } = require('../knex.js');
 
 class DiscountCodesController {
   data;
@@ -22,7 +23,6 @@ class DiscountCodesController {
       };
     }
 
-    // both tables will be referenced for each discount code type
     const discountCodeObj = await this.data.getDiscountCode(discountCode);
     if (!discountCodeObj) {
       return {
@@ -39,44 +39,62 @@ class DiscountCodesController {
       };
     }
 
-    // Type 1 is for Sponsor pick-up location reusable discount codes (x times per event)
-    if (discountCodeObj.type === 1 && discountCodeEventObj && discountCodeEventObj.timesUsedThisEvent >= discountCodeObj.usesPerEvent) {
+    // Type 1 = reusable discount codes (x times per event)
+    if (discountCodeObj.type === 1
+        && discountCodeEventObj
+          && discountCodeEventObj.timesUsedThisEvent >= discountCodeObj.usesPerEvent
+        ) {
       return {
         status: 200,
         message: 'Discount code has already been used up for this event',
       };
     }
 
-    // Type 2 is for one-time single-use discount codes
-    if (discountCodeObj.type === 2 && discountCodeObj.remainingUses < 1) {
+    // Type 2 = single-use discount codes
+    if (discountCodeObj.type === 2
+        && discountCodeObj.remainingUses < 1
+        ) {
       return {
         status: 200,
         message: 'Discount code has no uses remaining',
       };
     }
 
-    const currentRemainingUses = discountCodeObj.usesPerEvent - (discountCodeEventObj ? discountCodeEventObj.timesUsedThisEvent : 0);
-    const timesUsedThisOrder = discountCodeObj.type === 2 ? Math.min(discountCodeObj.remainingUses, ticketQuantity) : Math.min(currentRemainingUses, ticketQuantity);
-    // remaining uses stays 0 for reusable type 1 codes
-    const newRemainingUses = discountCodeObj.type === 2 ? discountCodeObj.remainingUses - timesUsedThisOrder : 0;
-    const timesUsedSum = discountCodeObj.timesUsed + timesUsedThisOrder;
+    // how many tickets in this order can be discounted?
+    let usesAllowedThisOrder;
+    if (discountCodeObj.type === 1) { // reusable
+      const previousUsesThisEvent = discountCodeEventObj ? discountCodeEventObj.timesUsedThisEvent : 0;
+      usesAllowedThisOrder = Math.min(discountCodeObj.usesPerEvent - previousUsesThisEvent, ticketQuantity);
+    }
+    else if (discountCodeObj.type === 2) { // single-use
+      usesAllowedThisOrder = Math.min(discountCodeObj.remainingUses, ticketQuantity);
+    }
 
-    // Update the discount code row with the new times used total and remaining uses
-    await this.data.useDiscountCode(discountCode, newRemainingUses, timesUsedSum);
-    
-    // NOTE: new context!!! 
-    // `usesPerEvent` in the DC_EVENTS table will now indicate initial `remainingUses` for type 1 discount codes and `usesPerEvent` for type 2 discount codes
-    const eventsTableUsesPerEvent = discountCodeObj.type === 2 ? discountCodeObj.usesPerEvent : discountCodeObj.remainingUses;
+    // update relevant DB fields
+    let usesRemainingAfterThisOrder = 0; // keep remainingUses = 0 for type 1 discount codes
+    let eventTableUsesPerEvent = discountCodeObj.usesPerEvent;
+    if (discountCodeObj.type === 2) {
+      usesRemainingAfterThisOrder = discountCodeObj.remainingUses - usesAllowedThisOrder;
+      // in order to properly release type 2 discount codes we need to track the initial/starting/creation `remainingUses` value
+      eventTableUsesPerEvent = Math.max(discountCodeObj.remainingUses, discountCodeEventObj ? discountCodeEventObj.usesPerEvent : 0);
+    }
+    const sumAllTimesUsedThisCode = discountCodeObj.timesUsed + usesAllowedThisOrder;
+    let sumAllTimesUsedThisEvent = usesAllowedThisOrder;
+    if (discountCodeEventObj) { // if there is a previous usage of this discount code for this event, add to the sum
+      sumAllTimesUsedThisEvent = discountCodeEventObj.timesUsedThisEvent + usesAllowedThisOrder;
+    }
+
+    await this.data.useDiscountCode(discountCode, usesRemainingAfterThisOrder, sumAllTimesUsedThisCode);
     if (!discountCodeEventObj) {
-      await this.data.addDiscountCodeEvent(discountCodeObj.id, eventId, timesUsedThisOrder, eventsTableUsesPerEvent);
+      await this.data.addDiscountCodeEvent(discountCodeObj.id, eventId, sumAllTimesUsedThisEvent, eventTableUsesPerEvent);
     }
     else {
-      await this.data.useDiscountCodeEvent(discountCodeObj.id, eventId, timesUsedThisOrder, eventsTableUsesPerEvent);
+      await this.data.useDiscountCodeEvent(discountCodeObj.id, eventId, sumAllTimesUsedThisEvent, eventTableUsesPerEvent);
     }
 
     const pricePerTicket = totalPrice / ticketQuantity;
     const savingsPerTicket = pricePerTicket * (discountCodeObj.percentage / 100);
-    const totalSavings = this.formatCurrency(savingsPerTicket * timesUsedThisOrder);
+    const totalSavings = this.formatCurrency(savingsPerTicket * usesAllowedThisOrder);
     const totalPriceAfterDiscount = this.formatCurrency(totalPrice - totalSavings);
 
     return {
@@ -101,59 +119,45 @@ class DiscountCodesController {
     const discountCodeObj = await this.data.getDiscountCode(discountCode);
     const discountCodeEventObj = await this.data.getDiscountCodeEvent(discountCodeObj.id, eventId);
 
-    if (!discountCodeObj && !discountCodeEventObj) {
+    if (!discountCodeObj || !discountCodeEventObj) {
       return {
         status: 400,
         message: 'Discount code not found',
       };
     }
 
-    // add check to make sure discount code has not already been used in a purchased & confirmed reservation...
-      // NOTE: if a discount code has been applied but not yet used in a reservation, it will appear in the discount_codes_events table but not in the reservations table (for a specific event for type 1 codes)
-
-    // for type 2 (single-use) discount codes, if the discount code has been used in more reservations than remainingUses would allow then do NOT release it
-      // EXCEPTION: count of reservation MAY be <= remainingUses, in which case, release difference of remainingUses - countReservationsUsed
+    let discountCodeIsReleasable = false;
+    let countOfReleaseableDiscountCodes = 0;
     if (discountCodeObj.type === 2) {
-      const reservationsUsedThisDiscountCode = await reservations.getReservationsByDiscountCodeId(discountCodeObj.id);
-      if (reservationsUsedThisDiscountCode.length >= discountCodeEventObj.timesUsedThisEvent) {
-        return {
-          status: 200,
-          message: 'Discount code has already been depleted',
-        };
-      }
+      // discountCodeObj.remainingUses can't be the trusted source of truth for type 2 discount codes
+      // so that's why capture the initial/starting/creation `remainingUses` value in the discount_codes_events table
+      const reservationsUsingThisDiscount = await reservations.getReservationsByDiscountCodeId(discountCodeObj.id);
+      discountCodeIsReleasable = discountCodeEventObj.usesPerEvent > reservationsUsingThisDiscount.rowCount;
+      countOfReleaseableDiscountCodes = discountCodeEventObj.usesPerEvent - reservationsUsingThisDiscount.rowCount;
     }
+    else if (discountCodeObj.type === 1) {
+      const reservationsUsingThisDiscount = await reservations.getReservationsByDiscountByEventThroughPickupParties(discountCodeObj.id, eventId);
+      discountCodeIsReleasable = discountCodeObj.usesPerEvent > reservationsUsingThisDiscount.rowCount;
+      countOfReleaseableDiscountCodes = discountCodeObj.usesPerEvent - reservationsUsingThisDiscount.rowCount;
+    }
+    console.log('countOfReleaseableDiscountCodes', countOfReleaseableDiscountCodes);
 
-    // for type 1 (reusable) discount codes, if the count of discounted reservations per/for a given event ID > usesPerEvent, then do NOT release it
-        // NOTE: eventId can be cross-correlated through pickup_parties table... ugh
-      // EXCEPTION: count of reservation MAY be less than `usesPerEvent`, in which case, release difference or usesPerEvent - countReservationsUsed
-    // the logic then becomes:
-      // if reservationsUsedThisDiscountCodeThisEvent >= usesPerEvent, then do NOT release it
-    if (discountCodeObj.type === 1) {
-      const reservationsByDiscountAndEvent = await reservations.getReservationsByDiscountByEventThroughPickupParties(discountCodeObj.id, eventId);
-      if (reservationsByDiscountAndEvent.rowCount >= discountCodeObj.usesPerEvent) {
-        return {
-          status: 200,
-          message: 'Discount code has already been depleted',
-        };
-      }
-      // if the count of reservations is less than usesPerEvent, then release the difference
-      //    which is discountCodeObj.usesPerEvent - reservationsByDiscountAndEvent.length ?? 
-      //   or discountCodeEventObj.timesUsedThisEvent - reservationsByDiscountAndEvent.length ??
-      const discountsToRelease = discountCodeEventObj.timesUsedThisEvent - reservationsByDiscountAndEvent.rowCount;
-      const decrementedTimesUsed = discountCodeObj.timesUsed - discountCodeEventObj.timesUsedThisEvent;
-      await this.data.releaseDiscountCode(discountCode, 0, decrementedTimesUsed);
-      await this.data.releaseDiscountCodeEvent(discountCodeObj.id, eventId, discountsToRelease);
+    if (!discountCodeIsReleasable) {
       return {
         status: 200,
-        message: 'Discount code released',
+        message: 'Discount code has already been depleted',
       };
     }
-
-    // renewedRemainingUses is only relevant for type 2 discount codes and should be 0 for type 1
-    const renewedRemainingUses = discountCodeObj.type === 2 ? discountCodeObj.remainingUses + discountCodeEventObj.timesUsedThisEvent : 0;
-    const decrementedTimesUsed = discountCodeObj.timesUsed - discountCodeEventObj.timesUsedThisEvent;
-    await this.data.releaseDiscountCode(discountCode, renewedRemainingUses, decrementedTimesUsed);
-    await this.data.releaseDiscountCodeEvent(discountCodeObj.id, eventId);
+    
+    // release the discount code
+    let postReleaseRemainingUses = 0;
+    if (discountCodeObj.type === 2) {
+      postReleaseRemainingUses = discountCodeObj.remainingUses + countOfReleaseableDiscountCodes;
+    }
+    const decrementedTimesUsed = discountCodeObj.timesUsed - countOfReleaseableDiscountCodes;
+    const decrementedTimesUsedThisEvent = discountCodeEventObj.timesUsedThisEvent - countOfReleaseableDiscountCodes;
+    await this.data.releaseDiscountCode(discountCode, postReleaseRemainingUses, decrementedTimesUsed);
+    await this.data.releaseDiscountCodeEvent(discountCodeObj.id, eventId, decrementedTimesUsedThisEvent);
 
     return {
       status: 200,
