@@ -126,21 +126,17 @@ class DiscountCodesController {
       };
     }
 
-    let discountCodeIsReleasable = false;
-    let countOfReleaseableDiscountCodes = 0;
+    let reservationsUsingThisDiscount;
     if (discountCodeObj.type === 2) {
       // discountCodeObj.remainingUses can't be the trusted source of truth for type 2 discount codes
       // so that's why capture the initial/starting/creation `remainingUses` value in the discount_codes_events table
-      const reservationsUsingThisDiscount = await reservations.getReservationsByDiscountCodeId(discountCodeObj.id);
-      discountCodeIsReleasable = discountCodeEventObj.usesPerEvent > reservationsUsingThisDiscount.rowCount;
-      countOfReleaseableDiscountCodes = discountCodeEventObj.usesPerEvent - reservationsUsingThisDiscount.rowCount;
+      reservationsUsingThisDiscount = await reservations.getReservationsByDiscountCodeId(discountCodeObj.id);
     }
     else if (discountCodeObj.type === 1) {
-      const reservationsUsingThisDiscount = await reservations.getReservationsByDiscountByEventThroughPickupParties(discountCodeObj.id, eventId);
-      discountCodeIsReleasable = discountCodeObj.usesPerEvent > reservationsUsingThisDiscount.rowCount;
-      countOfReleaseableDiscountCodes = discountCodeObj.usesPerEvent - reservationsUsingThisDiscount.rowCount;
+      reservationsUsingThisDiscount = await reservations.getReservationsByDiscountByEventThroughPickupParties(discountCodeObj.id, eventId);
     }
-    console.log('countOfReleaseableDiscountCodes', countOfReleaseableDiscountCodes);
+    const discountCodeIsReleasable = discountCodeEventObj.usesPerEvent > reservationsUsingThisDiscount.rowCount;
+    const countOfReleaseableDiscountCodes = discountCodeEventObj.timesUsedThisEvent - reservationsUsingThisDiscount.rowCount;
 
     if (!discountCodeIsReleasable) {
       return {

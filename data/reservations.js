@@ -15,9 +15,12 @@ function getReservationById(id) {
 }
 
 function getReservationsByDiscountCodeId(discountCodeId) {
-  return knex('reservations')
-    .select('*')
-    .where('discountCodeId', discountCodeId);
+  // return knex('reservations')
+  //   .select('*')
+  //   .where("discountCodeId", discountCodeId);
+  return knex.raw(`
+    select * from reservations r where r."discountCodeId" = ?;`
+  , [discountCodeId]);
 }
 
 function getReservationsByDiscountByEventThroughPickupParties(discountCodeId, eventId) {
