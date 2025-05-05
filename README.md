@@ -35,6 +35,7 @@ Heroku dashboard: https://dashboard.heroku.com/apps/blooming-fortress-13049/
    JWT_KEY=[jwt_key]
    ORIGIN_URL=http://localhost:4200 http://localhost:8080
    STRIPE_SECRET_KEY=[sk_test_key]
+   TICKETING_APP_URL=https://bus-to-show.github.io/bus-to-show-react
    ```
 
    * Replace `[user]`, `[pass]`, and `[database]` with values from step 2
