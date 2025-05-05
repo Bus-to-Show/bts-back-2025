@@ -5,8 +5,9 @@ const router = express.Router();
 const knex = require('../knex.js')
 
 const DiscountCodesController = require('../controllers/DiscountCodesController.js');
-const data = require('../data/discount_codes.js');
-const controller = new DiscountCodesController({ data });
+const discountCodesData = require('../data/discount_codes.js');
+const reservationsData = require('../data/reservations.js');
+const controller = new DiscountCodesController({ discountCodesData, reservationsData });
 
 //List (get all of the resource)
 router.get('/', function (req, res, next) {
