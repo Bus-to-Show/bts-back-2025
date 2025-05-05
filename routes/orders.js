@@ -277,7 +277,6 @@ router.post('/charge', async (req, res) => {
     source: req.body.stripeToken.id,
   })
     .then(customer => {
-
       stripe.charges.create({
         amount: req.body.amount,
         description: req.body.eventId,
@@ -289,8 +288,7 @@ router.post('/charge', async (req, res) => {
           return res.json(err)
         }
         return res.json(charge)
-      }
-      )
+      })
     })
     .catch(error => {
       console.error(error);

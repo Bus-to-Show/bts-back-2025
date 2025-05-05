@@ -1,7 +1,6 @@
 # BTS API Backend
 
-This repo defines the API used by the admin and rider sites.
-
+This repo defines the API used by the admin site and ticketing app.
 It also defines cron jobs for regularly getting data from Ticketmaster,
 removing stale carts, and sending reminder emails.
 
@@ -19,7 +18,7 @@ Heroku dashboard: https://dashboard.heroku.com/apps/blooming-fortress-13049/
   * PostgreSQL v16.8
   * Docker with Compose v2
 
-### Setup
+### Setup/run
 
 1. Install the dependencies with `npm install`
 
@@ -42,7 +41,7 @@ Heroku dashboard: https://dashboard.heroku.com/apps/blooming-fortress-13049/
    * Replace `[sk_test_key]` with the value from Heroku or Stripe
      * Make sure to use the *test* key, not the *live* key!
 
-   The origins correspond to the rider and admin sites respectively when
+   The origins correspond to the ticketing app and admin site respectively when
    running on localhost.
 
 4. Create the database tables with `npx knex migrate:latest`
@@ -50,3 +49,14 @@ Heroku dashboard: https://dashboard.heroku.com/apps/blooming-fortress-13049/
 5. Populate the database tables with `npx knex seed:run`
 
 6. Run the API with `npm start`
+
+### Test
+
+Run the unit tests with `npm test`. The test runner will pick up all files
+whose basename starts with `test-` (e.g. `test-example.js`) or ends with
+`test` (e.g. `example.test.js`, `example-test.js`).
+
+### Deploy
+
+Any push/merge to the main branch will be deployed to production automatically
+via Heroku.

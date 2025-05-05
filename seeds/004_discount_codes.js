@@ -6,17 +6,28 @@ exports.seed = (knex) => {
       return knex('discount_codes').insert([
         {
           id: 1,
-          discountCode: 'SAVE20',
-          percentage: 20,
-          expiresOn: 20251231,
-          issuedOn: 20250101,
+          discountCode: '1FREE',
+          expiresOn: '2026-12-31',
+          issuedOn: '2023-04-21',
           issuedTo: 'BTS staff',
           issuedBy: 'DK',
           issuedBecause: 'Feeling generous',
-          timesUsed: 3,
+          type: 2,
+          usesPerEvent: 0,
+          remainingUses: 1,
+          percentage: 100
+        }, {
+          id: 2,
+          discountCode: 'FireFreeRides',
+          expiresOn: '2026-12-31',
+          issuedOn: '2023-04-21',
+          issuedTo: 'FOTM staff',
+          issuedBy: 'DK',
+          issuedBecause: 'Pickup location',
+          timesUsed: 0,
           type: 1,
-          remainingUses: 2,
-          usesPerEvent: 3,
+          usesPerEvent: 2,
+          percentage: 100
         },
       ]);
     })
