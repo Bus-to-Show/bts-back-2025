@@ -1,9 +1,8 @@
 const nodemailer = require('nodemailer');
 const EMAIL_PASS = process.env.EMAIL_PASS;
+const TICKETING_APP_URL = process.env.TICKETING_APP_URL;
 
-const sendEmailConfirmation = async (email, context, token, origin) => {
-  console.log('sendEmailConfirmation origin   =====> ', origin)
-
+const sendEmailConfirmation = async (email, context, token) => {
   // Set up the transporter object using your email provider's SMTP server
   const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -19,8 +18,8 @@ const sendEmailConfirmation = async (email, context, token, origin) => {
     to: email,
     subject: context === 'confirm' ? 'Bus to Show Email Confirmation' : 'Bus to Show Password Reset',
     text: context === 'confirm'
-      ? `Thank you for registering! Please click the following link to confirm your email address: ${origin}/verify/${token}`
-      : `A password reset was requested for this account. Please click the following link to continue: ${origin}/reset/${token}`
+      ? `Thank you for registering! Please click the following link to confirm your email address: ${TICKETING_APP_URL}/verify/${token}`
+      : `A password reset was requested for this account. Please click the following link to continue: ${TICKETING_APP_URL}/reset/${token}`
   };
 
   // Send the email

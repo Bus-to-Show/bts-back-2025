@@ -51,12 +51,11 @@ router.get('/:id', verifyToken, function(req, res, next){
 //Create (create one of the resource)
 router.post('/', function(req, res, next){
   console.log('users/ route hit ---')
-  const origin = req.headers.origin
   if(!req.body.hshPwd || !req.body.email){
     return res.status(500).json({
       'message': 'no user information provided',
       'code': '500'
-    }); 
+    });
   }
   const saltRounds = 10;
   const payload = { username: req.body.email };
@@ -65,7 +64,7 @@ router.post('/', function(req, res, next){
   const email = req.body.email;
   const password = req.body.hshPwd;
   let hshPass = ''
-  
+
   bcrypt.genSalt(saltRounds, (err, salt) => {
     console.log('users/ route --- hash inside genSalt ==>>==>> ', req.body.hshPwd);
     //4068a95734305426ff1d81ee325cd4f9c9d5e382f4997f7fbea7450de0666016
@@ -84,7 +83,7 @@ router.post('/', function(req, res, next){
       .insert(req.body)
       .returning(['id', 'firstName', 'lastName', 'email', 'phone', 'isWaiverSigned', 'isStaff', 'isAdmin', 'isDriver', 'isDeactivated', 'preferredLocation'])
       .then( (data) => {
-        sendRegistrationConfirmationEmail(email, 'confirm', token, origin);
+        sendRegistrationConfirmationEmail(email, 'confirm', token);
         res.status(200).json({
           'message': 'email sent!',
           'code': '200',
@@ -99,7 +98,7 @@ router.post('/', function(req, res, next){
       })
     } else if(req.body.resendEmail === true){
 
-      sendRegistrationConfirmationEmail(email, 'confirm', token, origin);
+      sendRegistrationConfirmationEmail(email, 'confirm', token);
       return res.status(200).json({
         'message': 'email re-sent!',
         'code': '200',
@@ -110,7 +109,7 @@ router.post('/', function(req, res, next){
         'message': 'account already exists',
         'code': '202',
         'email': `${email}`
-      }); 
+      });
     }
   })
   .catch((err) => {
@@ -122,7 +121,7 @@ router.post('/', function(req, res, next){
     });
   });
 
-  
+
 })
 
 router.post('/login/', async (req, res) => {
@@ -131,7 +130,7 @@ router.post('/login/', async (req, res) => {
     return res.status(500).json({
       'message': 'no user information provided',
       'code': '500'
-    }); 
+    });
   }
   pool.connect( async (err, client, release) => {
     const {username, password} = req.body
@@ -145,14 +144,14 @@ router.post('/login/', async (req, res) => {
     WHERE email = $1
     AND is_verified = true`,
     [username]
-    
-    , async (err, result) => {      
+
+    , async (err, result) => {
       release()
       if (err) {
         return console.error('Error executing query', err.stack)
       }
       const { rows } = result
-    
+
       if (rows.length === 0) {
         return res.status(401).send('Invalid username or password!');
       }
@@ -165,10 +164,10 @@ router.post('/login/', async (req, res) => {
           return res.status(401).send('Invalid username or password');
         } else {
           const payload = { username };
-    
+
           // Sign the JWT using the secret key
           const token = jwt.sign(payload, JWT_KEY, { expiresIn: '14 days' });
-    
+
           // Include the JWT in the user object
           // Return the user information
           return res.send({
@@ -180,16 +179,15 @@ router.post('/login/', async (req, res) => {
         }
       });
     })
-  }) 
-    
+  })
+
   });
 
   router.post('/send-reset', async (req, res)  => {
     console.log('okay send-reset request is in!  ')
-    const origin = req.headers.origin;
     const {username} = req.body
     const payload = { username };
-    
+
           // Sign the JWT using the secret key
           const token = jwt.sign(payload, JWT_KEY, { expiresIn: '1h' });
 
@@ -198,7 +196,7 @@ router.post('/login/', async (req, res) => {
           pool.connect( async (err, client, release) => {
             if (err) {
               return console.error('Error acquiring client', err.stack)
-            } 
+            }
             client.query(
               query,
               [username]
@@ -213,7 +211,7 @@ router.post('/login/', async (req, res) => {
                   });
                 } else if (results && results.rows) {
                   if(results.rows.length) {
-                    sendRegistrationConfirmationEmail(username, 'reset', token, origin);
+                    sendRegistrationConfirmationEmail(username, 'reset', token);
                     res.status(200).json({
                       'message': 'password reset email sent',
                       'code': '200',
@@ -245,7 +243,7 @@ router.post('/login/', async (req, res) => {
       pool.connect( async (err, client, release) => {
         if (err) {
           return console.error('Error acquiring client', err.stack)
-        } 
+        }
         client.query(
           query,
           [username]
@@ -259,7 +257,7 @@ router.post('/login/', async (req, res) => {
                 'email': `${username}`
               });
             } else {
-  
+
               res.status(200).json({
                 'message': 'success',
                 'code': '200',
@@ -306,7 +304,7 @@ router.post('/login/', async (req, res) => {
           // returns hash
           req.body.hshPwd = hash;
           const pass = req.body.hshPwd;
-      
+
           try {
             const decoded = jwt.verify(token, JWT_KEY);
             username = decoded.username
@@ -314,7 +312,7 @@ router.post('/login/', async (req, res) => {
             pool.connect( async (err, client, release) => {
               if (err) {
                 return console.error('Error acquiring client', err.stack)
-              } 
+              }
               client.query(
                 query,
                 [username, pass]
@@ -328,7 +326,7 @@ router.post('/login/', async (req, res) => {
                       'email': `${username}`
                     });
                   } else {
-        
+
                     res.status(200).json({
                       'message': 'success',
                       'code': '200',
@@ -360,7 +358,7 @@ router.post('/login/', async (req, res) => {
         }
       });
     });
-   
+
    });
 
 
