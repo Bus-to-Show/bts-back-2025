@@ -275,25 +275,27 @@ router.post('/charge', async (req, res) => {
   stripe.customers.create({
     email: req.body.stripeEmail,
     source: req.body.stripeToken.id,
-  })
-    .then(customer => {
-      stripe.charges.create({
-        amount: req.body.amount,
-        description: req.body.eventId,
-        currency: 'usd',
-        customer: customer.id,
-        metadata: req.body.metadata
-      }, (err, charge) => {
-        if (err) {
-          return res.json(err)
-        }
-        return res.json(charge)
-      })
-    })
-    .catch(error => {
-      console.error(error);
-      return res.status(500).json({ message: 'An unknown error occurred.' });
-    });
-})
+  }).then(customer => {
+    stripe.charges.create({
+      amount: req.body.amount,
+      description: req.body.eventId,
+      currency: 'usd',
+      customer: customer.id,
+      metadata: req.body.metadata
+    }).then(charge => {
+      res.json(charge);
+    }).catch(err => handleStripeError(err, res));
+  }).catch(err => handleStripeError(err, res));
+});
+
+const handleStripeError = (err, res) => {
+  console.error(err);
+
+  if (err.type === 'StripeCardError') {
+    res.status(err.statusCode).json({message: err.message});
+  } else {
+    res.status(500).json({message: 'An unknown error occurred.'});
+  }
+};
 
 module.exports = router;
