@@ -127,6 +127,9 @@ Bus to Show, Inc.
 (844) BUS-SHOW [844.287.7469]
 reservations@bustoshow.org
 bustoshow.org
+
+P.S. Have any questions? Check out our FAQ page at https://bustoshow.org/faq or send us an email at the address above. We are here to help!
+P.P.S. Here's a link to the waiver terms and refund policy you agreed to when you made your reservation: https://bustoshow.org/waiver
 `;
   };
 
