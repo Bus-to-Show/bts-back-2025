@@ -114,7 +114,7 @@ Hi ${firstName} ${lastName}! Thank you for riding with Bus to Show!
 
 You have ${ticketQuantity} round-trip ${ticketQuantity === 1 ? 'seat' : 'seats'} reserved under check-in name [${willCallFirstName} ${willCallLastName}] departing from ${result.locationName}, ${result.streetAddress} and going to ${result.headliner} at ${result.venue} on ${result.date}. ${sponsorName === "Fire on the Mountain" ? "Please note, since Fire on the Mountain is closed by the time we get back, we drop back off at Three Dogs Tavern (just 2 blocks away) so you've got a place to hang out while you wait for your rideshare if you want - they also offer deals for Bus to Show riders!! If you need to be dropped off at Fire on the Mountain specifically, just let your driver know, and we can still absolutely swing by there for you." : ""}
 
-Last call / bus departure is currently ${convertTime(result.lastBusDepartureTime)}. Please show up at least 10-15 minutes before that to check in. Make sure everyone in your group has their IDs, even if they aren't the ones who bought their ticket (see instructions below for anyone under 18). If we have enough demand for multiple buses, we will usually start loading the first bus 30-60 min earlier, and sending them out as soon as they are full. Even better, come early to enjoy the deals our pick-up locations offer just for our riders!!
+Last call / bus departure is currently ${convertTime(result.lastBusDepartureTime)}. Please show up at least 10-15 minutes before that to check in. Make sure everyone in your group has their IDs, even if they aren't the ones who bought their ticket (see instructions below for anyone under 18). If we have enough demand for multiple buses, we will usually start loading the first bus 30-60 min earlier, and sending them out as soon as they are full. ${sponsorDeals[sponsorName] ? "Even better, come early to enjoy the deals our pick-up locations offer just for our riders!!" : ""}
 ${sponsorDeals[sponsorName] ? "\n" + sponsorName + " offers Bus to Show riders:\n" : ""}${sponsorDeals[sponsorName] ? sponsorDeals[sponsorName].map(deal => " * " + deal).join("\n") + "\n" : ""}
 PLEASE NOTE: Time adjustments do occasionally happen (when show times change, for example, because we don't want you missing music). The most up-to-date departure times are always available on our website. We'll send out emails to let you know whenever a change occurs, but just to be safe, please go to the website again and double check the times day-of. There are no refunds for missing the bus.
 
@@ -127,6 +127,9 @@ Bus to Show, Inc.
 (844) BUS-SHOW [844.287.7469]
 reservations@bustoshow.org
 bustoshow.org
+
+P.S. Have any other questions? Check out our FAQ page at https://bustoshow.org/faq or send us an email at the address above. We are here to help!
+P.P.S. Here's a link to the waiver terms and refund policy you agreed to when you made your reservation: https://bustoshow.org/waiver
 `;
   };
 
