@@ -13,7 +13,9 @@ const pool = new Pool(pgconfig)
 router.get('/:id', (req, res, next) => {
     pool.connect((err, client, release) => {
         if (err) {
-          return console.error('Error acquiring client', err.stack)
+          console.error(err);
+          res.status(500).json({message: 'An unknown error occurred.'});
+          return;
         }
 
     //     SELECT DISTINCT pp.id, pp."lastBusDepartureTime", pp."firstBusLoadTime", pp."partyPrice", pp."inCart", pp.capacity 
@@ -48,9 +50,13 @@ router.get('/:id', (req, res, next) => {
  
         `, (err, result) => {
           release()
+
           if (err) {
-            return console.error('Error executing query', err.stack)
+            console.error(err);
+            res.status(500).json({message: 'An unknown error occurred.'});
+            return;
           }
+
           res.status(200).json(result.rows)
         })
       })
@@ -61,8 +67,11 @@ router.get('/:id', (req, res, next) => {
   router.patch('/:id', function(req, res, next){
     pool.connect((err, client, release) => {
         if (err) {
-          return console.error('Error acquiring client', err.stack)
+          console.error(err);
+          res.status(500).json({message: 'An unknown error occurred.'});
+          return;
         }
+
         client.query(` 
             UPDATE pickup_parties
             SET capacity = ${req.body.capacity}
@@ -71,9 +80,13 @@ router.get('/:id', (req, res, next) => {
         ;
         `, (err, result) => {
           release()
+
           if (err) {
-            return console.error('Error executing query', err.stack)
+            console.error(err);
+            res.status(500).json({message: 'An unknown error occurred.'});
+            return;
           }
+
           res.status(200).json(result.rows)
         })
       })
@@ -82,9 +95,10 @@ router.get('/:id', (req, res, next) => {
   router.put('/:id', function(req, res, next){
     pool.connect((err, client, release) => {
         if (err) {
-          return console.error('Error acquiring client', err.stack)
+          console.error(err);
+          res.status(500).json({message: 'An unknown error occurred.'});
+          return;
         }
-        
 
         const partyBody = {
             id: req.body.party_id,
@@ -134,9 +148,13 @@ router.get('/:id', (req, res, next) => {
         const homeMadeUpsertQuery = partyBody.id ?  updateQuery : insertQuery; 
         client.query(`${homeMadeUpsertQuery}`, (err, result) => {
           release()
+
           if (err) {
-            throw new Error('Error executing query', err.stack)
+            console.error(err);
+            res.status(500).json({message: 'An unknown error occurred.'});
+            return;
           }
+
           res.status(200).json(result.rows)
         })
 
