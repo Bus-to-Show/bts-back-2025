@@ -117,7 +117,7 @@ router.patch('/return/:id', function (req, res, next) {
     })
 })
 
-router.patch('/', async (req, res, next) => {
+router.patch('/', async (req, res) => {
   try {
     if (req.body.applyOrRelease === 'release') {
       const { status, ...rest } = await controller.releaseDiscountCode(req.body);
@@ -125,9 +125,9 @@ router.patch('/', async (req, res, next) => {
     }
     const { status, ...rest } = await controller.applyDiscountCode(req.body);
     return res.status(status).json(rest);
-  }
-  catch (error) {
-    next(error);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'An unknown error occurred.' });
   }
 });
 
