@@ -10,6 +10,11 @@ const pgconfig = parse(process.env.DATABASE_URL);
 const Pool = require('pg').Pool;
 const pool = new Pool(pgconfig);
 
+const ReservationsController = require('../controllers/ReservationsController.js');
+const pickupPartiesData = require('../data/pickup_parties.js');
+const reservationsData = require('../data/reservations.js');
+const controller = new ReservationsController({pickupPartiesData, reservationsData});
+
 //List (get all of the reservations by location)
 router.get('/:id', (req, res) => {
   pool.connect((err, client, release) => {
@@ -93,30 +98,14 @@ router.patch('/:id', (req, res) => {
   });
 });
 
-router.put('/:id', (req, res) => {
-  pool.connect((err, client, release) => {
-    if (err) {
-      console.error(err);
-      res.status(500).json({message: 'An unknown error occurred.'});
-      return;
-    }
-
-    const updateQuery = `...`;
-    const insertQuery = `...`;
-    const homeMadeUpsertQuery = partyBody.id ?  updateQuery : insertQuery;
-
-    client.query(`${homeMadeUpsertQuery}`, (err, result) => {
-      release();
-
-      if (err) {
-        console.error(err);
-        res.status(500).json({message: 'An unknown error occurred.'});
-        return;
-      }
-
-      res.status(200).json(result.rows);
-    });
-  });
+router.put('/:id', async (req, res) => {
+  try {
+    const {status, ...rest} = await controller.updateReservation(req.body);
+    return res.status(status).json(rest);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({message: 'An unknown error occurred.'});
+  }
 });
 
 module.exports = router;
