@@ -156,7 +156,7 @@ P.P.S. Here's a link to the waiver terms and refund policy you agreed to when yo
       "$3 Cheese slice",
       "$4 Pepperoni slice",
       "$10 Day Drinker: NÜTRL & shot of Pink Whitney",
-      "$7 Pink Pony: Montucky"
+      "$7 Pink Pony: Montucky & shot of Pink Whitney"
     ],
     "Three Dogs Tavern": [
       "$3.25 Montucky",
