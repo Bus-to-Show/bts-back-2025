@@ -163,7 +163,7 @@ P.P.S. Here's a link to the waiver terms and refund policy you agreed to when yo
       "$5 Stadium Nachos",
       "$5 Taquitos",
       "$5 Pretzel Bites",
-      "$8.50 Mexican Lunchbox: Estrella Jalisco draft & shot of camarena"
+      "$8.50 Mexican Lunchbox: Estrella Jalisco draft & shot of Camarena"
     ],
     "Bierstadt Lagerhaus": [
       "$2 off soft pretzels",
