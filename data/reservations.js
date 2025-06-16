@@ -7,7 +7,7 @@ function getAllReservations() {
     .select('*');
 }
 
-function getReservationById(id) {
+function getReservation(id) {
   return knex('reservations')
     .select('*')
     .where('id', id)
@@ -15,29 +15,12 @@ function getReservationById(id) {
 }
 
 function getReservationsByDiscountCodeId(discountCodeId) {
-  // return knex('reservations')
-  //   .select('*')
-  //   .where("discountCodeId", discountCodeId);
   return knex.raw(`
     select * from reservations r where r."discountCodeId" = ?;`
   , [discountCodeId]);
 }
 
 function getReservationsByDiscountByEventThroughPickupParties(discountCodeId, eventId) {
-  /*  RAW QUERY:
-  select * from reservations r
-    inner join  pickup_parties pp ON r."pickupPartiesId" = pp.id
-    inner JOIN events ON pp."eventId" = events.id
-    where r."discountCodeId" = {discountCodeId}
-    and pp."eventId" = {eventId};
-  */
-  // return knex('reservations')
-  //   .select('*')
-  //   .innerJoin('pickup_parties', 'reservations.pickupPartiesId', 'pickup_parties.id')
-  //   .innerJoin('events', 'pickup_parties.eventId', 'event.id')
-  //   .where('reservations.discountCodeId', discountCodeId)
-  //   .andWhere('reservations.pickupPartiesId', 'pickup_parties.id')
-  //   .andWhere('pickup_parties.eventId', eventId);
   return knex.raw(`
     SELECT * FROM reservations r
     INNER JOIN pickup_parties pp ON r."pickupPartiesId" = pp.id
@@ -47,9 +30,31 @@ function getReservationsByDiscountByEventThroughPickupParties(discountCodeId, ev
   `, [discountCodeId, eventId]);
 }
 
+function updateReservation({
+  id,
+  orderId,
+  pickupPartiesId,
+  willCallFirstName,
+  willCallLastName,
+  status,
+  discountCodeId,
+}) {
+  return knex('reservations')
+    .where({id})
+    .update({
+      orderId,
+      pickupPartiesId,
+      willCallFirstName,
+      willCallLastName,
+      status,
+      discountCodeId,
+    });
+}
+
 module.exports = {
   getAllReservations,
-  getReservationById,
+  getReservation,
   getReservationsByDiscountCodeId,
-  getReservationsByDiscountByEventThroughPickupParties
-}
+  getReservationsByDiscountByEventThroughPickupParties,
+  updateReservation,
+};
