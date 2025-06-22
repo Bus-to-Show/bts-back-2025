@@ -182,6 +182,10 @@ P.P.S. Here's a link to the waiver terms and refund policy you agreed to when yo
       "$10 cauliflower wings ($3 off)",
       "$10 pretzel bites ($1 off)",
       "$15 BTS (Burger to Show) - signature burger details TBD"
+    ],
+    "Over Yonder": [
+      "1 free tap room pour",
+      "1 $5 can for the bus ride"
     ]
   };
 
