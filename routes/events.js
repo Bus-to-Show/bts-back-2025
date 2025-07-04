@@ -8,8 +8,11 @@ const knex = require('../knex.js')
 
 //List (get all of the resource)
 router.get('/', function(req, res, next){
+  const today = new Date().toLocaleDateString('en-US');
+
   knex('events')
     .select('id', 'date', 'startTime', 'venue', 'headliner', 'support1', 'support2', 'support3', 'headlinerImgLink', 'headlinerBio', 'meetsCriteria', 'isDenied', 'external')
+    .whereRaw('date::date >= ?', today)
   .then((data) => {
     res.status(200).json(data)
   })
