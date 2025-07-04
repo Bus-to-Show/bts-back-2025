@@ -4,15 +4,26 @@ const express = require('express');
 const router = express.Router();
 const knex = require('../knex.js')
 
-
-
-//List (get all of the resource)
+// Get all
 router.get('/', function(req, res, next){
   knex('events')
     .select('id', 'date', 'startTime', 'venue', 'headliner', 'support1', 'support2', 'support3', 'headlinerImgLink', 'headlinerBio', 'meetsCriteria', 'isDenied', 'external')
-  .then((data) => {
-    res.status(200).json(data)
-  })
+    .then((data) => {
+      res.status(200).json(data)
+    })
+})
+
+// Get upcoming
+router.get('/upcoming', function(req, res, next){
+  const today = new Date().toLocaleDateString('en-US');
+
+  knex('events')
+    .select('id', 'date', 'startTime', 'venue', 'headliner', 'support1', 'support2', 'support3', 'headlinerImgLink', 'headlinerBio', 'meetsCriteria', 'isDenied', 'external')
+    .whereRaw('date::date >= ?', today)
+    .orderByRaw('date::date')
+    .then((data) => {
+      res.status(200).json(data)
+    })
 })
 
 //Read (get one of the resource)
