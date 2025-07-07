@@ -2,60 +2,64 @@
 
 const express = require('express');
 const router = express.Router();
-const knex = require('../knex.js')
 
+const EventsController = require('../controllers/EventsController.js');
+const eventsData = require('../data/events.js');
+const controller = new EventsController({eventsData});
 
+// List
+router.get('/', async (req, res) => {
+  try {
+    const {status, events} = await controller.getEvents(req.query);
+    return res.status(status).json(events);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({message: 'An unknown error occurred.'});
+  }
+});
 
-//List (get all of the resource)
-router.get('/', function(req, res, next){
-  knex('events')
-    .select('id', 'date', 'startTime', 'venue', 'headliner', 'support1', 'support2', 'support3', 'headlinerImgLink', 'headlinerBio', 'meetsCriteria', 'isDenied', 'external')
-  .then((data) => {
-    res.status(200).json(data)
-  })
-})
+// Read
+router.get('/:id', async (req, res) => {
+  try {
+    const {status, ...rest} = await controller.getEvent(req.params);
+    return res.status(status).json(rest);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({message: 'An unknown error occurred.'});
+  }
+});
 
-//Read (get one of the resource)
-// Get One
-router.get('/:id', function(req, res, next){
-  knex('events')
-    .select('id', 'date', 'startTime', 'venue', 'headliner', 'support1', 'support2', 'support3', 'headlinerImgLink', 'headlinerBio', 'meetsCriteria', 'isDenied', 'external')
-    .where('id', req.params.id)
-  .then((data) => {
-    res.status(200).json(data[0])
-  })
-})
+// Create
+router.post('/', async (req, res) => {
+  try {
+    const {status, ...rest} = await controller.createEvent(req.body);
+    return res.status(status).json(rest);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({message: 'An unknown error occurred.'});
+  }
+});
 
-//Create (create one of the resource)
-router.post('/', function(req, res, next){
-  if (!req.body.startTime) req.body.startTime = '18:00:00'
-  knex('events')
-    .insert(req.body)
-    .returning(['id', 'date', 'startTime', 'venue', 'headliner', 'support1', 'support2', 'support3', 'headlinerImgLink', 'headlinerBio', 'meetsCriteria', 'isDenied', 'external'])
-  .then((data) => {
-    res.status(200).json(data[0])
-  })
-})
+// Update
+router.patch('/:id', async (req, res) => {
+  try {
+    const {status, ...rest} = await controller.updateEvent({id: req.params.id, ...req.body});
+    return res.status(status).json(rest);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({message: 'An unknown error occurred.'});
+  }
+});
 
-router.patch('/:id', function(req, res, next){
-  console.log('is events.patch getting hit? ', req.params)
-  knex('events')
-    .where('id', req.params.id)
-    .update(req.body)
-    .returning(['id', 'date', 'startTime', 'venue', 'headliner', 'support1', 'support2', 'support3', 'headlinerImgLink', 'headlinerBio', 'meetsCriteria', 'isDenied', 'external'])
-  .then((data) => {
-    res.status(200).json(data[0])
-  })
-})
+// Delete
+// router.delete('/:id', async (req, res) => {
+//   try {
+//     const {status, ...rest} = await controller.deleteEvent(req.params);
+//     return res.status(status).json(rest);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({message: 'An unknown error occurred.'});
+//   }
+// });
 
-//Delete (delete one of the resource)
-// router.delete('/:id', function(req, res, next){
-//   knex('events')
-//     .where('id', req.params.id)
-//     .del('*')
-//     .returning(['id', 'date', 'startTime', 'venue', 'headliner', 'support1', 'support2', 'support3', 'headlinerImgLink', 'headlinerBio', 'meetsCriteria', 'isDenied', 'external'])
-//   .then((data) => {
-//     res.status(200).json(data[0])
-//   })
-// })
 module.exports = router;

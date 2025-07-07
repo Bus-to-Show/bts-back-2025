@@ -11,7 +11,6 @@ var helmet = require('helmet')
 var discountCodesEventsRouter = require('./routes/discount_codes_events')
 var discountCodesRouter = require('./routes/discount_codes');
 var eventsRouter = require('./routes/events');
-var eventsDashRouter = require('./routes/events-dash');
 var ordersRouter = require('./routes/orders');
 var pickupLocationsRouter = require('./routes/pickup_locations');
 var pickupPartiesRouter = require('./routes/pickup_parties');
@@ -28,6 +27,7 @@ var apiRouter = require('./routes/api').router
 
 var app = express();
 var whitelist = process.env.ORIGIN_URL.split(' ')
+
 var corsOptions = {
   origin: function (origin, callback) {
     if (whitelist.indexOf(origin) !== -1) {
@@ -38,12 +38,15 @@ var corsOptions = {
   },
   optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
 }
+
 app.use(helmet())
+
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Credentials", "true");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
 })
+
 app.use(cors(corsOptions))
 
 app.use(logger('dev'));
@@ -57,7 +60,6 @@ app.use('/users', usersRouter);
 app.use(`/discount_codes_events`, discountCodesEventsRouter);
 app.use(`/discount_codes`, discountCodesRouter);
 app.use(`/events`, eventsRouter);
-app.use(`/events-dash`, eventsDashRouter);
 app.use(`/orders`, ordersRouter);
 app.use(`/pickup_locations`, pickupLocationsRouter);
 app.use(`/pickup_parties`, pickupPartiesRouter);
@@ -67,9 +69,19 @@ app.use(`/reservations`, reservationsRouter);
 app.use('/products', productsRouter);
 app.use('/purchases', purchasesRouter);
 
-app.use(function(req, res) {
-  console.log('next all the way to the end without finding anything req =====>', req.path)
-  res.status(404).send('Not Found!');
+app.use((req, res) => {
+  res.status(404).json({ message: 'That page does not exist.' });
+});
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'An unknown error occurred.' });
+});
+
+const port = process.env.PORT || 3000;
+
+app.listen(port, () => {
+  console.log(`Listening on port ${port}`);
 });
 
 apiDataFunction = async () => {
@@ -90,6 +102,7 @@ cron.schedule('0 4 * * *', () => {
   scheduled: true,
   timezone: "America/Denver"
 });
+
 cron.schedule('*/5 * * * *', () => {
   if (process.env.NODE_ENV == 'production'){
     eventDataHandler.sweepInCarts()
