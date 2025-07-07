@@ -11,7 +11,6 @@ var helmet = require('helmet')
 var discountCodesEventsRouter = require('./routes/discount_codes_events')
 var discountCodesRouter = require('./routes/discount_codes');
 var eventsRouter = require('./routes/events');
-var eventsDashRouter = require('./routes/events-dash');
 var ordersRouter = require('./routes/orders');
 var pickupLocationsRouter = require('./routes/pickup_locations');
 var pickupPartiesRouter = require('./routes/pickup_parties');
@@ -61,7 +60,6 @@ app.use('/users', usersRouter);
 app.use(`/discount_codes_events`, discountCodesEventsRouter);
 app.use(`/discount_codes`, discountCodesRouter);
 app.use(`/events`, eventsRouter);
-app.use(`/events-dash`, eventsDashRouter);
 app.use(`/orders`, ordersRouter);
 app.use(`/pickup_locations`, pickupLocationsRouter);
 app.use(`/pickup_parties`, pickupPartiesRouter);
