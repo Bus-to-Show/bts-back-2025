@@ -59,8 +59,10 @@ function getEvents({sort, sum, upcoming}) {
   }
 
   if (upcoming) {
-    const today = new Date().toLocaleDateString('en-US');
-    queryBuilder.whereRaw('date::date >= ?', today);
+    // Start at yesterday because buses are still running after midnight
+    const date = new Date();
+    date.setDate(date.getDate() - 1);
+    queryBuilder.whereRaw('date::date >= ?', date.toLocaleDateString('en-US'));
   }
 
   if (sort.includes('date')) {
