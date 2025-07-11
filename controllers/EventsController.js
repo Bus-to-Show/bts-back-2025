@@ -7,12 +7,13 @@ class EventsController {
     this.eventsData = eventsData;
   }
 
-  async getEvents({
-    sort = [],
-    sum = [],
-    upcoming = false,
-  }) {
-    const events = await this.eventsData.getEvents({sort, sum, upcoming});
+  async getEvents({sort, sum, upcoming}) {
+    const events = await this.eventsData.getEvents({
+      sort: sort?.split(',') || [],
+      sum: sum?.split(',') || [],
+      upcoming: upcoming?.toLowerCase() === 'true',
+    });
+
     return {status: 200, events};
   }
 
