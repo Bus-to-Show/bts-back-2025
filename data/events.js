@@ -19,7 +19,7 @@ const fields = [
   'doors_time',
 ];
 
-function getEvents({sort, sum, upcoming}) {
+function getEvents({sum, startDate, endDate, sort}) {
   const queryBuilder = knex('events')
     .select(fields);
 
@@ -58,11 +58,12 @@ function getEvents({sort, sum, upcoming}) {
     );
   }
 
-  if (upcoming) {
-    // Start at yesterday because buses are still running after midnight
-    const date = new Date();
-    date.setDate(date.getDate() - 1);
-    queryBuilder.whereRaw('date::date >= ?', date.toLocaleDateString('en-US'));
+  if (startDate) {
+    queryBuilder.whereRaw('date::date >= ?', startDate);
+  }
+
+  if (endDate) {
+    queryBuilder.whereRaw('date::date <= ?', endDate);
   }
 
   if (sort.includes('date')) {
