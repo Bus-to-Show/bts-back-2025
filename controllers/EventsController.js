@@ -7,12 +7,14 @@ class EventsController {
     this.eventsData = eventsData;
   }
 
-  async getEvents({
-    sort = [],
-    sum = [],
-    upcoming = false,
-  }) {
-    const events = await this.eventsData.getEvents({sort, sum, upcoming});
+  async getEvents({sum, startDate, endDate, sort}) {
+    const events = await this.eventsData.getEvents({
+      sum: sum?.split(',') || [],
+      startDate: EventsController.parseDate(startDate),
+      endDate: EventsController.parseDate(endDate),
+      sort: sort?.split(',') || [],
+    });
+
     return {status: 200, events};
   }
 
@@ -112,6 +114,11 @@ class EventsController {
     }
 
     return {status: 200, ...event};
+  }
+
+  static parseDate(string) {
+    const date = new Date(string);
+    return date.getTime() > 0 ? date : undefined;
   }
 }
 
