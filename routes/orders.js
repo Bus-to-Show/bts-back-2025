@@ -186,6 +186,9 @@ P.P.S. Here's a link to the waiver terms and refund policy you agreed to when yo
     "Over Yonder": [
       "1 free tap room pour",
       "1 $5 can for the bus ride"
+    ],
+    "Mr. Oso": [
+      "Spend $15 and get a free house margarita!",
     ]
   };
 
