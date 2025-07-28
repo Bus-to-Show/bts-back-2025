@@ -172,6 +172,8 @@ router.post('/login/', async (req, res) => {
           // Return the user information
           return res.send({
             id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
             email: user.email,
             isAdmin: user.isAdmin,
             token: token
