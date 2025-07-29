@@ -12,20 +12,21 @@ const Pool = require('pg').Pool
 const pool = new Pool(pgconfig);
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt');
+const saltRounds = 10;
 const sendRegistrationConfirmationEmail = require('../registrationEmails').sendEmailConfirmation
 
 //List (get all of the resource)
 router.get('/', verifyToken, (req, res) => {
   jwt.verify(req.token, JWT_KEY, (err, authData) => {
     if (err) {
-      res.sendStatus(403)
-    } else {
-      knex('users')
-        .select('id', 'firstName', 'lastName', 'email', 'phone', 'isWaiverSigned', 'isStaff', 'isAdmin', 'isDriver', 'isDeactivated', 'hshPwd', 'preferredLocation')
-        .then((data) => {
-          res.status(200).json(data)
-        })
+      return res.status(403).json({message: 'This route is top secret.'});
     }
+
+    knex('users')
+      .select('id', 'firstName', 'lastName', 'email', 'phone', 'isWaiverSigned', 'isStaff', 'isAdmin', 'isDriver', 'isDeactivated', 'hshPwd', 'preferredLocation')
+      .then((data) => {
+        return res.status(200).json(data)
+      })
   })
 })
 
@@ -34,28 +35,24 @@ router.get('/', verifyToken, (req, res) => {
 router.get('/:id', verifyToken, (req, res) => {
   jwt.verify(req.token, JWT_KEY, (err, authData) => {
     if (err) {
-      res.sendStatus(403)
-    } else {
-      knex('users')
-        .select('id', 'firstName', 'lastName', 'email', 'phone', 'isWaiverSigned', 'isStaff', 'isAdmin', 'isDriver', 'isDeactivated', 'hshPwd', 'preferredLocation')
-        .where('id', req.params.id)
-        .then((data) => {
-          res.status(200).json(data[0])
-        })
+      return res.status(403).json({message: 'This route is top secret.'});
     }
+
+    knex('users')
+      .select('id', 'firstName', 'lastName', 'email', 'phone', 'isWaiverSigned', 'isStaff', 'isAdmin', 'isDriver', 'isDeactivated', 'hshPwd', 'preferredLocation')
+      .where('id', req.params.id)
+      .then((data) => {
+        return res.status(200).json(data[0])
+      })
   })
 })
 
 //Create (create one of the resource)
 router.post('/', (req, res) => {
   if (!req.body.hshPwd || !req.body.email) {
-    return res.status(500).json({
-      'message': 'no user information provided',
-      'code': '500'
-    });
+    return res.status(400).json({message: 'Email and password are required.'});
   }
 
-  const saltRounds = 10;
   const payload = {username: req.body.email};
 
   // Sign the JWT using the secret key
@@ -64,72 +61,66 @@ router.post('/', (req, res) => {
   const password = req.body.hshPwd;
   let hshPass = ''
 
-  bcrypt.genSalt(saltRounds, (err, salt) => {
-    bcrypt.hash(password, salt, (err, hash) => {
-      // returns hash
-      hshPass = hash.trim();
-      req.body.hshPwd = hshPass;
+  bcrypt.hash(password, saltRounds, (err, hash) => {
+    if (err) {
+      console.error('Error hashing password', err);
+      return res.status(500).json({message: 'An unknown error occurred.'});
+    }
 
-      return knex('users')
-        .select('id', 'firstName', 'lastName', 'email', 'phone', 'isWaiverSigned', 'isStaff', 'isAdmin', 'isDriver', 'isDeactivated', 'preferredLocation')
-        .where('email', email)
-        .then((rows) => {
-          if (rows.length === 0) {
-            return knex('users')
-              .insert(req.body)
-              .returning(['id', 'firstName', 'lastName', 'email', 'phone', 'isWaiverSigned', 'isStaff', 'isAdmin', 'isDriver', 'isDeactivated', 'preferredLocation'])
-              .then((data) => {
-                sendRegistrationConfirmationEmail(email, 'confirm', token);
+    // returns hash
+    hshPass = hash.trim();
+    req.body.hshPwd = hshPass;
 
-                res.status(200).json({
-                  'message': 'email sent!',
-                  'code': '200',
-                  'email': `${email}`
-                })
-              }, (err) => {
-                res.status(500).json({
-                  'message': 'email failed to send',
-                  'code': '500',
-                  'email': `${email}`
-                });
+    return knex('users')
+      .select('id', 'firstName', 'lastName', 'email', 'phone', 'isWaiverSigned', 'isStaff', 'isAdmin', 'isDriver', 'isDeactivated', 'preferredLocation')
+      .where('email', email)
+      .then((rows) => {
+        if (rows.length === 0) {
+          return knex('users')
+            .insert(req.body)
+            .returning(['id', 'firstName', 'lastName', 'email', 'phone', 'isWaiverSigned', 'isStaff', 'isAdmin', 'isDriver', 'isDeactivated', 'preferredLocation'])
+            .then((data) => {
+              sendRegistrationConfirmationEmail(email, 'confirm', token);
+
+              return res.status(201).json({
+                message: 'Verification email sent.',
+                email,
               })
-          } else if (req.body.resendEmail === true) {
-            sendRegistrationConfirmationEmail(email, 'confirm', token);
-
-            return res.status(200).json({
-              'message': 'email re-sent!',
-              'code': '200',
-              'email': `${email}`
             })
-          } else {
-            res.status(200).json({
-              'message': 'account already exists',
-              'code': '202',
-              'email': `${email}`
-            });
-          }
-        })
-        .catch((err) => {
-          console.error(err);
-          res.status(500).json({message: 'An unknown error occurred.'});
-        })
-    });
+        }
+
+        if (req.body.resendEmail === true) {
+          sendRegistrationConfirmationEmail(email, 'confirm', token);
+
+          return res.status(200).json({
+            message: 'Verification email resent.',
+            email,
+          })
+        }
+
+        return res.status(409).json({
+          message: 'Account already exists.',
+          email,
+        });
+      })
+      .catch((err) => {
+        console.error(err);
+        return res.status(500).json({message: 'An unknown error occurred.'});
+      })
   });
 })
 
 router.post('/login/', (req, res) => {
   if (!req.body.password || !req.body.username) {
-    return res.status(500).json({
-      'message': 'no user information provided',
-      'code': '500'
-    });
+    return res.status(400).json({message: 'Username and password are required.'});
   }
 
   pool.connect((err, client, release) => {
     const {username, password} = req.body
 
     if (err) {
-      return console.error('Error acquiring client', err.stack)
+      console.error('Error acquiring client', err);
+      return res.status(500).json({message: 'An unknown error occurred.'});
     }
 
     client.query(
@@ -142,40 +133,44 @@ router.post('/login/', (req, res) => {
         release()
 
         if (err) {
-          return console.error('Error executing query', err.stack)
+          console.error('Error executing query', err);
+          return res.status(500).json({message: 'An unknown error occurred.'});
         }
 
         const {rows} = result
 
         if (rows.length === 0) {
-          return res.status(401).send('Invalid username or password!');
+          return res.status(401).json({message: 'Invalid username or password.'});
         }
 
         // Check if the password is correct
         const user = rows[0];
 
         bcrypt.compare(password, user.hshPwd, (err, result) => {
-          if (err) console.error(err)
+          if (err) {
+            console.error('Error comparing password', err);
+            return res.status(500).json({message: 'An unknown error occurred.'});
+          }
 
           if (!result) {
-            return res.status(401).send('Invalid username or password');
-          } else {
-            const payload = {username};
-
-            // Sign the JWT using the secret key
-            const token = jwt.sign(payload, JWT_KEY, {expiresIn: '14 days'});
-
-            // Include the JWT in the user object
-            // Return the user information
-            return res.send({
-              id: user.id,
-              firstName: user.firstName,
-              lastName: user.lastName,
-              email: user.email,
-              isAdmin: user.isAdmin,
-              token: token
-            });
+            return res.status(401).json({message: 'Invalid username or password.'});
           }
+
+          const payload = {username};
+
+          // Sign the JWT using the secret key
+          const token = jwt.sign(payload, JWT_KEY, {expiresIn: '14 days'});
+
+          // Include the JWT in the user object
+          // Return the user information
+          return res.status(200).json({
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            isAdmin: user.isAdmin,
+            token: token
+          });
         });
       }
     )
@@ -194,7 +189,8 @@ router.post('/send-reset', (req, res)  => {
 
   pool.connect((err, client, release) => {
     if (err) {
-      return console.error('Error acquiring client', err.stack)
+      console.error('Error acquiring client', err);
+      return res.status(500).json({message: 'An unknown error occurred.'});
     }
 
     client.query(
@@ -204,30 +200,23 @@ router.post('/send-reset', (req, res)  => {
         release()
 
         if (err) {
-          console.error(err)
-
-          res.status(500).json({
-            'message': 'failed to determine account status',
-            'code': '500',
-            'email': `${username}`
-          });
-        } else if (results && results.rows) {
-          if (results.rows.length) {
-            sendRegistrationConfirmationEmail(username, 'reset', token);
-
-            res.status(200).json({
-              'message': 'password reset email sent',
-              'code': '200',
-              'email': `${username}`
-            })
-          } else {
-            res.status(200).json({
-              'message': 'no such account',
-              'code': '202',
-              'email': `${username}`
-            });
-          }
+          console.error('Error executing query', err);
+          return res.status(500).json({message: 'An unknown error occurred.'});
         }
+
+        if (results?.rows?.length) {
+          sendRegistrationConfirmationEmail(username, 'reset', token);
+
+          return res.status(200).json({
+            message: 'Password reset email sent.',
+            email: username,
+          })
+        }
+
+        return res.status(404).json({
+          message: 'No such account.',
+          email: username,
+        });
       }
     )
   })
@@ -245,7 +234,8 @@ router.get('/confirm-email/:token/', (req, res) => {
 
     pool.connect((err, client, release) => {
       if (err) {
-        return console.error('Error acquiring client', err.stack)
+        console.error('Error acquiring client', err);
+        return res.status(500).json({message: 'An unknown error occurred.'});
       }
 
       client.query(
@@ -255,20 +245,14 @@ router.get('/confirm-email/:token/', (req, res) => {
           release()
 
           if (err) {
-            console.error(err)
-
-            res.status(500).json({
-              'message': 'failed to insert verified user',
-              'code': '500',
-              'email': `${username}`
-            });
-          } else {
-            res.status(200).json({
-              'message': 'success',
-              'code': '200',
-              'email': `${username}`
-            });
+            console.error('Error executing query', err);
+            return res.status(500).json({message: 'An unknown error occurred.'});
           }
+
+          return res.status(200).json({
+            message: 'Account verified.',
+            email: username,
+          });
         }
       )
     })
@@ -276,97 +260,76 @@ router.get('/confirm-email/:token/', (req, res) => {
     if (error instanceof jwt.TokenExpiredError) {
       const payload = jwt.verify(token, JWT_KEY, {ignoreExpiration: true});
       username = payload.username
-      console.error("Token has expired");
 
-      res.status(200).json({
-        'message': 'expired',
-        'code': '203',
-        'email': `${username}`
-      });
-    } else {
-      console.error("confirm-email token is invalid", error);
-
-      res.status(200).json({
-        'message': 'invalid',
-        'code': '203',
-        'email': `${username}`
+      return res.status(400).json({
+        message: 'Token has expired.',
+        email: username,
       });
     }
+
+    console.error(err);
+    return res.status(500).json({message: 'An unknown error occurred.'});
   }
 });
 
 router.post('/reset-pass/', (req, res) => {
-  const saltRounds = 10;
   const token = req.body.resetToken;
   let username = ''
   const password = req.body.hshPwd
 
-  bcrypt.genSalt(saltRounds, (err, salt) => {
-    bcrypt.hash(password, salt, (err, hash) => {
-      if (err) {
-        console.error('inside bcrypt hash func ====== ', err)
-      } else {
-        // returns hash
-        req.body.hshPwd = hash;
-        const pass = req.body.hshPwd;
+  bcrypt.hash(password, saltRounds, (err, hash) => {
+    if (err) {
+      console.error('Error hashing password', err);
+      return res.status(500).json({message: 'An unknown error occurred.'});
+    }
 
-        try {
-          const decoded = jwt.verify(token, JWT_KEY);
-          username = decoded.username
-          const query = 'UPDATE users SET "hshPwd" = $2 WHERE email = $1';
+    // returns hash
+    req.body.hshPwd = hash;
+    const pass = req.body.hshPwd;
 
-          pool.connect((err, client, release) => {
+    try {
+      const decoded = jwt.verify(token, JWT_KEY);
+      username = decoded.username
+      const query = 'UPDATE users SET "hshPwd" = $2 WHERE email = $1';
+
+      pool.connect((err, client, release) => {
+        if (err) {
+          console.error('Error acquiring client', err);
+          return res.status(500).json({message: 'An unknown error occurred.'});
+        }
+
+        client.query(
+          query,
+          [username, pass],
+          (err, results) => {
+            release()
+
             if (err) {
-              return console.error('Error acquiring client', err.stack)
+              console.error('Error executing query', err);
+              return res.status(500).json({message: 'An unknown error occurred.'});
             }
 
-            client.query(
-              query,
-              [username, pass],
-              (err, results) => {
-                release()
-
-                if (err) {
-                  console.error(err)
-
-                  res.status(500).json({
-                    'message': 'failed to insert verified user',
-                    'code': '500',
-                    'email': `${username}`
-                  });
-                } else {
-                  res.status(200).json({
-                    'message': 'success',
-                    'code': '200',
-                    'email': `${username}`
-                  });
-                }
-              }
-            )
-          })
-        } catch (error) {
-          if (error instanceof jwt.TokenExpiredError) {
-            const payload = jwt.verify(token, JWT_KEY, {ignoreExpiration: true});
-            username = payload.username
-            console.error("Token has expired");
-
-            res.status(200).json({
-              'message': 'expired',
-              'code': '203',
-              'email': `${username}`
-            });
-          } else {
-            console.error("confirm-email token is invalid", error);
-
-            res.status(200).json({
-              'message': 'invalid',
-              'code': '203',
-              'email': `${username}`
+            return res.status(200).json({
+              message: 'Password updated.',
+              email: username,
             });
           }
-        }
+        )
+      })
+    } catch (error) {
+      if (error instanceof jwt.TokenExpiredError) {
+        const payload = jwt.verify(token, JWT_KEY, {ignoreExpiration: true});
+        username = payload.username
+
+        return res.status(400).json({
+          message: 'Token has expired.',
+          email: username,
+        });
       }
-    });
+
+      console.error(err);
+      return res.status(500).json({message: 'An unknown error occurred.'});
+    }
   });
 });
 
