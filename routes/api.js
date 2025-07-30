@@ -39,7 +39,7 @@ function verifyToken(req, res, next) {
     req.token = cookieToken
     //call the Next Middleware
     next()
-  } 
+  }
   else {
     //forbidden
     res.sendStatus('403')
@@ -86,6 +86,8 @@ router.get('/secure', async (req, res) => {
           const user = rows[0];
           return res.status(200).send({
             id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
             email: user.email,
             isAdmin: user.isAdmin,
             token: bearerToken

@@ -15,351 +15,322 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const sendRegistrationConfirmationEmail = require('../registrationEmails').sendEmailConfirmation
 
-
 //List (get all of the resource)
-router.get('/', verifyToken, function(req, res, next){
+router.get('/', verifyToken, (req, res) => {
   jwt.verify(req.token, JWT_KEY, (err, authData) => {
-    if(err){
-      res.sendStatus(403)
-    } else {
-      knex('users')
+    if (err) {
+      return res.status(403).json({message: 'This route is top secret.'});
+    }
+
+    knex('users')
       .select('id', 'firstName', 'lastName', 'email', 'phone', 'isWaiverSigned', 'isStaff', 'isAdmin', 'isDriver', 'isDeactivated', 'hshPwd', 'preferredLocation')
       .then((data) => {
-        res.status(200).json(data)
+        return res.status(200).json(data)
       })
-    }
   })
 })
 
 //Read (get one of the resource)
 // Get One
-router.get('/:id', verifyToken, function(req, res, next){
+router.get('/:id', verifyToken, (req, res) => {
   jwt.verify(req.token, JWT_KEY, (err, authData) => {
-    if(err){
-      res.sendStatus(403)
-    } else {
-      knex('users')
+    if (err) {
+      return res.status(403).json({message: 'This route is top secret.'});
+    }
+
+    knex('users')
       .select('id', 'firstName', 'lastName', 'email', 'phone', 'isWaiverSigned', 'isStaff', 'isAdmin', 'isDriver', 'isDeactivated', 'hshPwd', 'preferredLocation')
       .where('id', req.params.id)
       .then((data) => {
-        res.status(200).json(data[0])
+        return res.status(200).json(data[0])
       })
-    }
   })
 })
 
 //Create (create one of the resource)
-router.post('/', function(req, res, next){
-  console.log('users/ route hit ---')
-  if(!req.body.hshPwd || !req.body.email){
-    return res.status(500).json({
-      'message': 'no user information provided',
-      'code': '500'
-    });
+router.post('/', (req, res) => {
+  if (!req.body.hshPwd || !req.body.email) {
+    return res.status(400).json({message: 'Email and password are required.'});
   }
-  const saltRounds = 10;
-  const payload = { username: req.body.email };
+
+  const payload = {username: req.body.email};
+
   // Sign the JWT using the secret key
-  const token = jwt.sign(payload, JWT_KEY, { expiresIn: '72h' });
+  const token = jwt.sign(payload, JWT_KEY, {expiresIn: '72h'});
   const email = req.body.email;
   const password = req.body.hshPwd;
   let hshPass = ''
 
-  bcrypt.genSalt(saltRounds, (err, salt) => {
-    console.log('users/ route --- hash inside genSalt ==>>==>> ', req.body.hshPwd);
-    //4068a95734305426ff1d81ee325cd4f9c9d5e382f4997f7fbea7450de0666016
-    bcrypt.hash(password, salt, (err, hash) => {
+  bcrypt.hash(password, saltRounds, (err, hash) => {
+    if (err) {
+      console.error('Error hashing password', err);
+      return res.status(500).json({message: 'An unknown error occurred.'});
+    }
+
     // returns hash
     hshPass = hash.trim();
     req.body.hshPwd = hshPass;
-    //$2b$10$UN1zGKdnjU/xQpDHz5P5Eu9EsoQOUlGb3Wb0teyR8Rq59JUwpOJti
-    console.log('users/ route --- req.body after genSalt ==>>==>> ', req.body);
+
     return knex('users')
-  .select('id', 'firstName', 'lastName', 'email', 'phone', 'isWaiverSigned', 'isStaff', 'isAdmin', 'isDriver', 'isDeactivated', 'preferredLocation')
-  .where('email', email)
-  .then((rows) =>{
-    if(rows.length===0){
-      return knex('users')
-      .insert(req.body)
-      .returning(['id', 'firstName', 'lastName', 'email', 'phone', 'isWaiverSigned', 'isStaff', 'isAdmin', 'isDriver', 'isDeactivated', 'preferredLocation'])
-      .then( (data) => {
-        sendRegistrationConfirmationEmail(email, 'confirm', token);
-        res.status(200).json({
-          'message': 'email sent!',
-          'code': '200',
-          'email': `${email}`
-        })
-      }, (err) => {
-        res.status(500).json({
-          'message': 'email failed to send',
-          'code': '500',
-          'email': `${email}`
+      .select('id', 'firstName', 'lastName', 'email', 'phone', 'isWaiverSigned', 'isStaff', 'isAdmin', 'isDriver', 'isDeactivated', 'preferredLocation')
+      .where('email', email)
+      .then((rows) => {
+        if (rows.length === 0) {
+          return knex('users')
+            .insert(req.body)
+            .returning(['id', 'firstName', 'lastName', 'email', 'phone', 'isWaiverSigned', 'isStaff', 'isAdmin', 'isDriver', 'isDeactivated', 'preferredLocation'])
+            .then((data) => {
+              sendRegistrationConfirmationEmail(email, 'confirm', token);
+
+              return res.status(201).json({
+                message: 'Verification email sent.',
+                email,
+              })
+            })
+        }
+
+        if (req.body.resendEmail === true) {
+          sendRegistrationConfirmationEmail(email, 'confirm', token);
+
+          return res.status(200).json({
+            message: 'Verification email resent.',
+            email,
+          })
+        }
+
+        return res.status(409).json({
+          message: 'Account already exists.',
+          email,
         });
       })
-    } else if(req.body.resendEmail === true){
-
-      sendRegistrationConfirmationEmail(email, 'confirm', token);
-      return res.status(200).json({
-        'message': 'email re-sent!',
-        'code': '200',
-        'email': `${email}`
+      .catch((err) => {
+        console.error(err);
+        return res.status(500).json({message: 'An unknown error occurred.'});
       })
-    } else {
-      res.status(200).json({
-        'message': 'account already exists',
-        'code': '202',
-        'email': `${email}`
-      });
-    }
-  })
-  .catch((err) => {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to register user' });
-    next(err)
-  })
-
-    });
   });
-
-
 })
 
-router.post('/login/', async (req, res) => {
-  console.log('login route hit ---', req.body)
-  if(!req.body.password || !req.body.username){
-    return res.status(500).json({
-      'message': 'no user information provided',
-      'code': '500'
-    });
+router.post('/login/', (req, res) => {
+  if (!req.body.password || !req.body.username) {
+    return res.status(400).json({message: 'Username and password are required.'});
   }
-  pool.connect( async (err, client, release) => {
+
+  pool.connect((err, client, release) => {
     const {username, password} = req.body
-    console.log('login route --- password ==>>==>> ', password);
+
     if (err) {
-      return console.error('Error acquiring client', err.stack)
+      console.error('Error acquiring client', err);
+      return res.status(500).json({message: 'An unknown error occurred.'});
     }
+
     client.query(
-    `SELECT  id, "firstName", "lastName", email, "hshPwd", "isWaiverSigned", "isStaff", "isDriver", "isAdmin", "isDeactivated", "preferredLocation"
-    FROM users
-    WHERE email = $1
-    AND is_verified = true`,
-    [username]
+      `SELECT  id, "firstName", "lastName", email, "hshPwd", "isWaiverSigned", "isStaff", "isDriver", "isAdmin", "isDeactivated", "preferredLocation"
+      FROM users
+      WHERE email = $1
+      AND is_verified = true`,
+      [username],
+      (err, result) => {
+        release()
 
-    , async (err, result) => {
-      release()
-      if (err) {
-        return console.error('Error executing query', err.stack)
-      }
-      const { rows } = result
+        if (err) {
+          console.error('Error executing query', err);
+          return res.status(500).json({message: 'An unknown error occurred.'});
+        }
 
-      if (rows.length === 0) {
-        return res.status(401).send('Invalid username or password!');
-      }
-      // Check if the password is correct
-      const user = rows[0];
-      await bcrypt.compare(password, user.hshPwd, (err, result)=>{
+        const {rows} = result
 
-        if(err) console.error(err)
-        if (!result) {
-          return res.status(401).send('Invalid username or password');
-        } else {
-          const payload = { username };
+        if (rows.length === 0) {
+          return res.status(401).json({message: 'Invalid username or password.'});
+        }
+
+        // Check if the password is correct
+        const user = rows[0];
+
+        bcrypt.compare(password, user.hshPwd, (err, result) => {
+          if (err) {
+            console.error('Error comparing password', err);
+            return res.status(500).json({message: 'An unknown error occurred.'});
+          }
+
+          if (!result) {
+            return res.status(401).json({message: 'Invalid username or password.'});
+          }
+
+          const payload = {username};
 
           // Sign the JWT using the secret key
-          const token = jwt.sign(payload, JWT_KEY, { expiresIn: '14 days' });
+          const token = jwt.sign(payload, JWT_KEY, {expiresIn: '14 days'});
 
           // Include the JWT in the user object
           // Return the user information
-          return res.send({
+          return res.status(200).json({
             id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
             email: user.email,
             isAdmin: user.isAdmin,
             token: token
           });
+        });
+      }
+    )
+  })
+});
+
+router.post('/send-reset', (req, res)  => {
+  const {username} = req.body
+  const payload = {username};
+
+  // Sign the JWT using the secret key
+  const token = jwt.sign(payload, JWT_KEY, {expiresIn: '1h'});
+
+  //check whether there is an account associated with the email address
+  const query = 'SELECT email FROM users WHERE email = $1';
+
+  pool.connect((err, client, release) => {
+    if (err) {
+      console.error('Error acquiring client', err);
+      return res.status(500).json({message: 'An unknown error occurred.'});
+    }
+
+    client.query(
+      query,
+      [username],
+      (err, results) => {
+        release()
+
+        if (err) {
+          console.error('Error executing query', err);
+          return res.status(500).json({message: 'An unknown error occurred.'});
         }
-      });
+
+        if (results?.rows?.length) {
+          sendRegistrationConfirmationEmail(username, 'reset', token);
+
+          return res.status(200).json({
+            message: 'Password reset email sent.',
+            email: username,
+          })
+        }
+
+        return res.status(404).json({
+          message: 'No such account.',
+          email: username,
+        });
+      }
+    )
+  })
+})
+
+router.get('/confirm-email/:token/', (req, res) => {
+  const token = req.params.token;
+  let username = ''
+
+  try {
+    const decoded = jwt.verify(token, JWT_KEY);
+    username = decoded.username
+
+    const query = 'UPDATE users SET is_verified = true WHERE email = $1';
+
+    pool.connect((err, client, release) => {
+      if (err) {
+        console.error('Error acquiring client', err);
+        return res.status(500).json({message: 'An unknown error occurred.'});
+      }
+
+      client.query(
+        query,
+        [username],
+        (err, results) => {
+          release()
+
+          if (err) {
+            console.error('Error executing query', err);
+            return res.status(500).json({message: 'An unknown error occurred.'});
+          }
+
+          return res.status(200).json({
+            message: 'Account verified.',
+            email: username,
+          });
+        }
+      )
     })
-  })
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      const payload = jwt.verify(token, JWT_KEY, {ignoreExpiration: true});
+      username = payload.username
 
-  });
+      return res.status(400).json({
+        message: 'Token has expired.',
+        email: username,
+      });
+    }
 
-  router.post('/send-reset', async (req, res)  => {
-    console.log('okay send-reset request is in!  ')
-    const {username} = req.body
-    const payload = { username };
+    console.error(err);
+    return res.status(500).json({message: 'An unknown error occurred.'});
+  }
+});
 
-          // Sign the JWT using the secret key
-          const token = jwt.sign(payload, JWT_KEY, { expiresIn: '1h' });
+router.post('/reset-pass/', (req, res) => {
+  const token = req.body.resetToken;
+  let username = ''
+  const password = req.body.hshPwd
 
-          //check whether there is an account associated with the email address
-          const query = 'SELECT email FROM users WHERE email = $1';
-          pool.connect( async (err, client, release) => {
-            if (err) {
-              return console.error('Error acquiring client', err.stack)
-            }
-            client.query(
-              query,
-              [username]
-              , async (err, results) => {
-                release()
-                if(err) {
-                  console.error(err)
-                  res.status(500).json({
-                    'message': 'failed to determine account status',
-                    'code': '500',
-                    'email': `${username}`
-                  });
-                } else if (results && results.rows) {
-                  if(results.rows.length) {
-                    sendRegistrationConfirmationEmail(username, 'reset', token);
-                    res.status(200).json({
-                      'message': 'password reset email sent',
-                      'code': '200',
-                      'email': `${username}`
-                    })
-                  } else {
-                    res.status(200).json({
-                      'message': 'no such account',
-                      'code': '202',
-                      'email': `${username}`
-                    });
-                  }
-                }
-              }
-            )
-            })
+  bcrypt.hash(password, saltRounds, (err, hash) => {
+    if (err) {
+      console.error('Error hashing password', err);
+      return res.status(500).json({message: 'An unknown error occurred.'});
+    }
 
+    // returns hash
+    req.body.hshPwd = hash;
+    const pass = req.body.hshPwd;
 
-  })
-
-  router.get('/confirm-email/:token/', async (req, res) => {
-    const token = req.params.token;
-    let username = ''
     try {
       const decoded = jwt.verify(token, JWT_KEY);
       username = decoded.username
+      const query = 'UPDATE users SET "hshPwd" = $2 WHERE email = $1';
 
-      const query = 'UPDATE users SET is_verified = true WHERE email = $1';
-      pool.connect( async (err, client, release) => {
+      pool.connect((err, client, release) => {
         if (err) {
-          return console.error('Error acquiring client', err.stack)
+          console.error('Error acquiring client', err);
+          return res.status(500).json({message: 'An unknown error occurred.'});
         }
+
         client.query(
           query,
-          [username]
-          , async (err, results) => {
+          [username, pass],
+          (err, results) => {
             release()
-            if(err) {
-              console.error(err)
-              res.status(500).json({
-                'message': 'failed to insert verified user',
-                'code': '500',
-                'email': `${username}`
-              });
-            } else {
 
-              res.status(200).json({
-                'message': 'success',
-                'code': '200',
-                'email': `${username}`
-              });
+            if (err) {
+              console.error('Error executing query', err);
+              return res.status(500).json({message: 'An unknown error occurred.'});
             }
+
+            return res.status(200).json({
+              message: 'Password updated.',
+              email: username,
+            });
           }
         )
       })
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
-          const payload = jwt.verify(token, JWT_KEY, {ignoreExpiration: true} );
-          username = payload.username
-        console.error("Token has expired");
-        res.status(200).json({
-          'message': 'expired',
-          'code': '203',
-          'email': `${username}`
-        });
-      } else {
-        console.error("confirm-email token is invalid", error);
-        res.status(200).json({
-          'message': 'invalid',
-          'code': '203',
-          'email': `${username}`
+        const payload = jwt.verify(token, JWT_KEY, {ignoreExpiration: true});
+        username = payload.username
+
+        return res.status(400).json({
+          message: 'Token has expired.',
+          email: username,
         });
       }
+
+      console.error(err);
+      return res.status(500).json({message: 'An unknown error occurred.'});
     }
-   });
-
-
-   router.post('/reset-pass/', async (req, res) => {
-    console.log('reset-pass ==>>==>> ', req.body.hshPwd);
-    //4068a95734305426ff1d81ee325cd4f9c9d5e382f4997f7fbea7450de0666016
-    const saltRounds = 10;
-    const token = req.body.resetToken;
-    let username = ''
-    const password = req.body.hshPwd
-    bcrypt.genSalt(saltRounds, (err, salt) => {
-      bcrypt.hash(password, salt, (err, hash) => {
-        if(err){
-          console.error('inside bcrypt hash func ====== ', err)
-        } else {
-          // returns hash
-          req.body.hshPwd = hash;
-          const pass = req.body.hshPwd;
-
-          try {
-            const decoded = jwt.verify(token, JWT_KEY);
-            username = decoded.username
-            const query = 'UPDATE users SET "hshPwd" = $2 WHERE email = $1';
-            pool.connect( async (err, client, release) => {
-              if (err) {
-                return console.error('Error acquiring client', err.stack)
-              }
-              client.query(
-                query,
-                [username, pass]
-                , async (err, results) => {
-                  release()
-                  if(err) {
-                    console.error(err)
-                    res.status(500).json({
-                      'message': 'failed to insert verified user',
-                      'code': '500',
-                      'email': `${username}`
-                    });
-                  } else {
-
-                    res.status(200).json({
-                      'message': 'success',
-                      'code': '200',
-                      'email': `${username}`
-                    });
-                  }
-                }
-              )
-            })
-          } catch (error) {
-            if (error instanceof jwt.TokenExpiredError) {
-              const payload = jwt.verify(token, JWT_KEY, {ignoreExpiration: true} );
-              username = payload.username
-              console.error("Token has expired");
-              res.status(200).json({
-                'message': 'expired',
-                'code': '203',
-                'email': `${username}`
-              });
-            } else {
-              console.error("confirm-email token is invalid", error);
-              res.status(200).json({
-                'message': 'invalid',
-                'code': '203',
-                'email': `${username}`
-              });
-            }
-          }
-        }
-      });
-    });
-
-   });
-
+  });
+});
 
 module.exports = router;

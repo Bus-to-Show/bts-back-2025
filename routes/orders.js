@@ -11,6 +11,10 @@ const jwt = require('jsonwebtoken')
 const JWT_KEY = process.env.JWT_KEY
 const verifyToken = require('./api').verifyToken
 
+const OrdersController = require('../controllers/OrdersController.js');
+const ordersData = require('../data/orders.js');
+const reservationsData = require('../data/reservations.js');
+const controller = new OrdersController({ordersData, reservationsData});
 
 //List (get all of the resource)
 router.get('/', verifyToken, function (req, res, next) {
@@ -26,7 +30,6 @@ router.get('/', verifyToken, function (req, res, next) {
     }
   })
 })
-
 
 //Get All reservations associated with a userId (passed in as req.params.id)
 router.get('/:id', function (req, res, next) {
@@ -44,7 +47,6 @@ router.get('/:id', function (req, res, next) {
       res.status(200).json(data)
     })
 })
-
 
 //Read (get one of the resource)
 // Get One
@@ -258,17 +260,15 @@ P.P.S. Here's a link to the waiver terms and refund policy you agreed to when yo
     })
 })
 
-
-//PATCH ROUTE ORDERS
-router.patch('/:id', function (req, res, next) {
-  knex('orders')
-    .where('id', req.params.id)
-    .update(req.body)
-    .returning(['id', 'orderedByFirstName', 'orderedByLastName', 'orderedByEmail'])
-    .then((data) => {
-      res.status(200).json(data[0])
-    })
-})
+router.patch('/:id', async (req, res) => {
+  try {
+    const {status, ...rest} = await controller.updateOrder({id: req.params.id, ...req.body});
+    return res.status(status).json(rest);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({message: 'An unknown error occurred.'});
+  }
+});
 
 //Delete (delete one of the resource)
 // router.delete('/:id', function(req, res, next){

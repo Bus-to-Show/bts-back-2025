@@ -51,10 +51,24 @@ function updateReservation({
     });
 }
 
+function updateReservations({
+  orderId,
+  willCallFirstName,
+  willCallLastName,
+}) {
+  return knex('reservations')
+    .where({orderId})
+    .update({
+      willCallFirstName,
+      willCallLastName,
+    });
+}
+
 module.exports = {
   getAllReservations,
   getReservation,
   getReservationsByDiscountCodeId,
   getReservationsByDiscountByEventThroughPickupParties,
   updateReservation,
+  updateReservations,
 };
