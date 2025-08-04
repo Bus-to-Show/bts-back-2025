@@ -190,7 +190,8 @@ P.P.S. Here's a link to the waiver terms and refund policy you agreed to when yo
       "1 $5 can for the bus ride"
     ],
     "Mr. Oso": [
-      "Spend $15 and get a free house margarita!",
+      "Spend $15 and get a free house margarita or house-made agua fresca!",
+      "$4 Chips and salsa",
     ]
   };
 
