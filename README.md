@@ -1,8 +1,7 @@
 # BTS API Backend
 
 This repo defines the API used by the admin site and ticketing app.
-It also defines cron jobs for regularly getting data from Ticketmaster,
-removing stale carts, and sending reminder emails.
+It also defines cron jobs for removing stale carts and sending reminder emails.
 
 Production URL: https://blooming-fortress-13049.herokuapp.com/
 
