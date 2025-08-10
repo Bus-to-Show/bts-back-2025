@@ -84,25 +84,6 @@ app.listen(port, () => {
   console.log(`Listening on port ${port}`);
 });
 
-apiDataFunction = async () => {
-  const allShowsObj = await eventDataHandler.getTicketMasterData()
-  eventDataHandler.insertEventData(allShowsObj)
-  console.log('tmData.length ==>>==>> ', allShowsObj.length);
-}
-
-// let time = new Date()
-
-
-cron.schedule('0 4 * * *', () => {
-  if (process.env.NODE_ENV == 'production'){
-  console.log('Running apiDataFunction cron!');
-  apiDataFunction()
-  }
-}, {
-  scheduled: true,
-  timezone: "America/Denver"
-});
-
 cron.schedule('*/5 * * * *', () => {
   if (process.env.NODE_ENV == 'production'){
     eventDataHandler.sweepInCarts()
