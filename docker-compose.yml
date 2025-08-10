@@ -1,9 +1,4 @@
 services:
-  adminer:
-    image: adminer
-    ports:
-      - 5431:8080
-    # restart: always
   db:
     image: postgres:16.8
     environment:
