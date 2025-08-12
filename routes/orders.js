@@ -120,6 +120,8 @@ Last call / bus departure is currently ${convertTime(result.lastBusDepartureTime
 ${sponsorDeals[sponsorName] ? "\n" + sponsorName + " offers Bus to Show riders:\n" : ""}${sponsorDeals[sponsorName] ? sponsorDeals[sponsorName].map(deal => " * " + deal).join("\n") + "\n" : ""}
 PLEASE NOTE: Time adjustments do occasionally happen (when show times change, for example, because we don't want you missing music). The most up-to-date departure times are always available on our website. We'll send out emails to let you know whenever a change occurs, but just to be safe, please go to the website again and double check the times day-of. There are no refunds for missing the bus.
 
+Just riding with us after the show? You can find our buses in Lower South Lot 2. The bus leaves 30 minutes after the show ends.
+
 Under 18? No problem - anyone under 18 just needs to have a parent/guardian send an email to reservations@bustoshow.org including explicit permission to ride Bus to Show, their name and a picture of their ID, their kid's name (yours), and the date of the show. Then, just show your ID and that email at check-in and you're good to go!!
 
 Can't wait to get this bus party going!!
