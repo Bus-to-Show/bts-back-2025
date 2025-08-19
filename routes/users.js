@@ -281,8 +281,8 @@ router.get('/confirm-email/:token/', (req, res) => {
         }
       )
     })
-  } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
+  } catch (err) {
+    if (err instanceof jwt.TokenExpiredError) {
       const payload = jwt.verify(token, JWT_KEY, {ignoreExpiration: true});
       username = payload.username
 
@@ -341,8 +341,8 @@ router.post('/reset-pass/', (req, res) => {
           }
         )
       })
-    } catch (error) {
-      if (error instanceof jwt.TokenExpiredError) {
+    } catch (err) {
+      if (err instanceof jwt.TokenExpiredError) {
         const payload = jwt.verify(token, JWT_KEY, {ignoreExpiration: true});
         username = payload.username
 

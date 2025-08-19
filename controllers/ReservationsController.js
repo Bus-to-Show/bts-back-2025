@@ -25,7 +25,7 @@ class ReservationsController {
       };
     }
 
-    const reservation = this.reservationsData.getReservation(id);
+    const reservation = await this.reservationsData.getReservation(id);
 
     if (!reservation) {
       return {
