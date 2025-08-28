@@ -15,6 +15,20 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const sendRegistrationConfirmationEmail = require('../registrationEmails').sendEmailConfirmation
 
+// We should move this to an environment variable,
+// e.g., process.env.BLOCKED_EMAIL_DOMAINS.split(',')
+const BLOCKED_DOMAINS = [
+  'otvus.com',
+];
+
+// and extract this somewhere reusable too
+const isEmailDomainBlocked = (email) => {
+  if (!email) return false;
+  const domain = email.split('@')[1];
+  return BLOCKED_DOMAINS.includes(domain?.toLowerCase());
+};
+
+
 //List (get all of the resource)
 router.get('/', verifyToken, (req, res) => {
   jwt.verify(req.token, JWT_KEY, (err, authData) => {
@@ -51,6 +65,11 @@ router.get('/:id', verifyToken, (req, res) => {
 router.post('/', (req, res) => {
   if (!req.body.hshPwd || !req.body.email) {
     return res.status(400).json({message: 'Email and password are required.'});
+  }
+
+  if (isEmailDomainBlocked(req.body.email)) {
+    console.log(`Blocked email: ${req.body.email}`)
+    return res.status(400).json({message: 'Registration from this email domain is not allowed.'});
   }
 
   const payload = {username: req.body.email};
@@ -179,6 +198,15 @@ router.post('/login/', (req, res) => {
 
 router.post('/send-reset', (req, res)  => {
   const {username} = req.body
+
+  if (isEmailDomainBlocked(username)) {
+    console.log(`Blocked email: ${username}`)
+    return res.status(400).json({
+      message: 'Password reset for this email domain is not allowed.',
+      email: username,
+    });
+  }
+
   const payload = {username};
 
   // Sign the JWT using the secret key

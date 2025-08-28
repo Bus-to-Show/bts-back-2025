@@ -16,6 +16,19 @@ const ordersData = require('../data/orders.js');
 const reservationsData = require('../data/reservations.js');
 const controller = new OrdersController({ordersData, reservationsData});
 
+// We should move this to an environment variable,
+// e.g., process.env.BLOCKED_EMAIL_DOMAINS.split(',')
+const BLOCKED_DOMAINS = [
+  'otvus.com',
+];
+
+// and extract this somewhere reusable too
+const isEmailDomainBlocked = (email) => {
+  if (!email) return false;
+  const domain = email.split('@')[1];
+  return BLOCKED_DOMAINS.includes(domain?.toLowerCase());
+};
+
 //List (get all of the resource)
 router.get('/', verifyToken, function (req, res, next) {
   jwt.verify(req.token, JWT_KEY, (err, authData) => {
@@ -78,6 +91,11 @@ router.post('/', function (req, res, next) {
     ticketQuantity,
     discountCode
   } = req.body
+
+  if (isEmailDomainBlocked(email)) {
+    console.log(`Blocked email: ${email}`)
+    return res.status(400).send('Orders from this email domain are not allowed.');
+  }
 
   const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -285,6 +303,11 @@ router.patch('/:id', async (req, res) => {
 // })
 
 router.post('/charge', async (req, res) => {
+  if (isEmailDomainBlocked(req.body.stripeEmail)) {
+    console.log(`Blocked email: ${req.body.stripeEmail}`)
+    return res.status(400).json({message: 'Orders from this email domain are not allowed.'});
+  }
+
   stripe.customers.create({
     email: req.body.stripeEmail,
     source: req.body.stripeToken.id,
