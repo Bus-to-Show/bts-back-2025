@@ -320,7 +320,7 @@ router.post('/charge', async (req, res) => {
 
   try {
     const partyResult = await getPickupParty(pickupPartyId);
-    console.log('partyResult', partyResult);  // debug logging, remove before deploy
+    console.log('partyResult rows', partyResult.rows);  // debug logging, remove before deploy
     const party = partyResult.rows[0];
     console.log('party', party);  // debug logging, remove before deploy
 
