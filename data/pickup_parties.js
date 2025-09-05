@@ -14,7 +14,7 @@ function getPickupParty(id) {
     )
     WHERE id = ?
     LIMIT 1
-  `, id);
+  `, [id, id]);
 }
 
 module.exports = {
