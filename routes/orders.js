@@ -14,6 +14,7 @@ const verifyToken = require('./api').verifyToken
 const OrdersController = require('../controllers/OrdersController.js');
 const ordersData = require('../data/orders.js');
 const reservationsData = require('../data/reservations.js');
+const { getPickupParty } = require('../data/pickup_parties.js');
 const controller = new OrdersController({ordersData, reservationsData});
 
 // We should move this to an environment variable,
@@ -308,25 +309,47 @@ router.patch('/:id', async (req, res) => {
 // })
 
 router.post('/charge', async (req, res) => {
+
   if (isEmailDomainBlocked(req.body.stripeEmail)) {
     console.log(`Blocked email: ${req.body.stripeEmail}`)
     return res.status(400).json({message: 'Orders from this email domain are not allowed.'});
   }
 
-  stripe.customers.create({
-    email: req.body.stripeEmail,
-    source: req.body.stripeToken.id,
-  }).then(customer => {
-    stripe.charges.create({
+  // check capacity of pickup party before charging customer
+  const { pickupPartyId, ticketQuantity } = req.body.metadata;
+
+  try {
+    const partyResult = await getPickupParty(pickupPartyId);
+    console.log('partyResult', partyResult);  // debug logging, remove before deploy
+    const party = partyResult.rows[0];
+    console.log('party', party);  // debug logging, remove before deploy
+
+    if (!party) {
+      return res.status(404).json({ message: 'Pickup party not found.' });
+    }
+
+    const availableCapacity = party.capacity - party.reservations - party.inCart;  // I'm not sure about `party.inCart` in this check here... -W
+    console.log('availableCapacity', availableCapacity);  // debug logging, remove before deploy
+    if (ticketQuantity > availableCapacity) {
+      return res.status(400).json({ message: 'Not enough tickets available for this order, please try again.' });
+    }
+
+    const customer = await stripe.customers.create({
+      email: req.body.stripeEmail,
+      source: req.body.stripeToken.id,
+    });
+
+    const charge = await stripe.charges.create({
       amount: req.body.amount,
-      description: req.body.eventId,
+      description: req.body.metadata.eventId,
       currency: 'usd',
       customer: customer.id,
-      metadata: req.body.metadata
-    }).then(charge => {
-      res.json(charge);
-    }).catch(err => handleStripeError(err, res));
-  }).catch(err => handleStripeError(err, res));
+      metadata: req.body.metadata,
+    });
+    res.json(charge);
+  } catch (err) {
+    handleStripeError(err, res);
+  }
 });
 
 const handleStripeError = (err, res) => {
