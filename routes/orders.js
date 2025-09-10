@@ -185,17 +185,12 @@ router.post('/', function (req, res, next) {
     discountCode
   } = req.body
 
+  if (!firstName || !lastName || !email || !pickupLocationId || !eventId || !ticketQuantity) {
+    return res.status(400).send({message: 'Missing required fields'});
+  }
   if (isEmailDomainBlocked(email)) {
     console.log(`Blocked email: ${email}`)
-    return res.status(400).send('Orders from this email domain are not allowed.');
-  }
-  if (!firstName || !lastName || !email) {
-    res.status(404).send('Please include first name, last name, and email!')
-    return null
-  }
-  if (!pickupLocationId || !eventId || !ticketQuantity) {
-    res.status(404).send('Please include pickup location, event, and ticket quantity!')
-    return null
+    return res.status(400).send({message: 'Unable to process this order.'});
   }
 
   const transporter = nodemailer.createTransport({
@@ -312,7 +307,7 @@ router.post('/charge', async (req, res) => {
 
   if (isEmailDomainBlocked(req.body.stripeEmail)) {
     console.log(`Blocked email: ${req.body.stripeEmail}`)
-    return res.status(400).json({message: 'Orders from this email domain are not allowed.'});
+    return res.status(400).json({message: 'Unable to process this order.'});
   }
 
   // check capacity of pickup party before charging customer
@@ -328,10 +323,10 @@ router.post('/charge', async (req, res) => {
       return res.status(404).json({ message: 'Pickup party not found.' });
     }
 
-    const availableCapacity = party.capacity - party.reservations - party.inCart;  // I'm not sure about `party.inCart` in this check here... -W
+    const availableCapacity = party.capacity - party.reservations;
     console.log('availableCapacity', availableCapacity);  // debug logging, remove before deploy
     if (ticketQuantity > availableCapacity) {
-      return res.status(400).json({ message: 'Not enough tickets available for this order, please try again.' });
+      return res.status(400).json({ message: 'Not enough tickets left to complete this order, please try again.' });
     }
 
     const customer = await stripe.customers.create({
