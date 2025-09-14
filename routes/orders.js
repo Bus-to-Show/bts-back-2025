@@ -304,29 +304,25 @@ router.patch('/:id', async (req, res) => {
 // })
 
 router.post('/charge', async (req, res) => {
-
-  if (isEmailDomainBlocked(req.body.stripeEmail)) {
-    console.log(`Blocked email: ${req.body.stripeEmail}`)
-    return res.status(400).json({message: 'Unable to process this order.'});
-  }
-
-  // check capacity of pickup party before charging customer
-  const { pickupPartyId, ticketQuantity } = req.body.metadata;
-
   try {
-    const partyResult = await getPickupParty(pickupPartyId);
-    console.log('partyResult rows', partyResult.rows);  // debug logging, remove before deploy
-    const party = partyResult.rows[0];
-    console.log('party', party);  // debug logging, remove before deploy
+    if (isEmailDomainBlocked(req.body.stripeEmail)) {
+      console.log(`Blocked email: ${req.body.stripeEmail}`)
+      return res.status(400).json({message: 'Unable to process this order.'});
+    }
+
+    // check capacity of pickup party before charging customer
+    const {pickupPartyId, ticketQuantity} = req.body.metadata;
+
+    const party = await getPickupParty({id: pickupPartyId});
 
     if (!party) {
-      return res.status(404).json({ message: 'Pickup party not found.' });
+      return res.status(404).json({message: 'Pickup party not found.'});
     }
 
     const availableCapacity = party.capacity - party.reservations;
-    console.log('availableCapacity', availableCapacity);  // debug logging, remove before deploy
+
     if (ticketQuantity > availableCapacity) {
-      return res.status(400).json({ message: 'Not enough tickets left to complete this order, please try again.' });
+      return res.status(400).json({message: 'Not enough tickets left to complete this order. Please try another pickup party.'});
     }
 
     const customer = await stripe.customers.create({
