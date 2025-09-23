@@ -316,13 +316,13 @@ router.post('/charge', async (req, res) => {
     const party = await getPickupParty({id: pickupPartyId});
 
     if (!party) {
-      return res.status(404).json({message: 'Pickup party not found.'});
+      return res.status(404).json({message: 'That pickup was not found. Please try again.'});
     }
 
     const availableCapacity = party.capacity - party.reservations;
 
     if (ticketQuantity > availableCapacity) {
-      return res.status(400).json({message: 'Not enough tickets left to complete this order. Please try another pickup party.'});
+      return res.status(400).json({message: 'Not enough tickets left to complete this order. Please try again or select another pickup location.'});
     }
 
     const customer = await stripe.customers.create({
