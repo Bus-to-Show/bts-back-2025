@@ -186,11 +186,11 @@ router.post('/', function (req, res, next) {
   } = req.body
 
   if (!firstName || !lastName || !email || !pickupLocationId || !eventId || !ticketQuantity) {
-    return res.status(400).send({message: 'Missing required fields'});
+    return res.status(400).json({message: 'Missing required fields'});
   }
   if (isEmailDomainBlocked(email)) {
     console.log(`Blocked email: ${email}`)
-    return res.status(400).send({message: 'Unable to process this order.'});
+    return res.status(400).json({message: 'Unable to process this order.'});
   }
 
   const transporter = nodemailer.createTransport({
