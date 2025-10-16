@@ -69,7 +69,7 @@ router.post('/', (req, res) => {
 
   if (isEmailDomainBlocked(req.body.email)) {
     console.log(`Blocked email: ${req.body.email}`)
-    return res.status(400).json({message: 'Registration from this email domain is not allowed.'});
+    return res.status(400).json({message: 'Unable to process this request.'});
   }
 
   const payload = {username: req.body.email};
@@ -201,10 +201,7 @@ router.post('/send-reset', (req, res)  => {
 
   if (isEmailDomainBlocked(username)) {
     console.log(`Blocked email: ${username}`)
-    return res.status(400).json({
-      message: 'Password reset for this email domain is not allowed.',
-      email: username,
-    });
+    return res.status(400).json({message: 'Unable to process this request.'});
   }
 
   const payload = {username};
@@ -284,8 +281,8 @@ router.get('/confirm-email/:token/', (req, res) => {
         }
       )
     })
-  } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
+  } catch (err) {
+    if (err instanceof jwt.TokenExpiredError) {
       const payload = jwt.verify(token, JWT_KEY, {ignoreExpiration: true});
       username = payload.username
 
@@ -344,8 +341,8 @@ router.post('/reset-pass/', (req, res) => {
           }
         )
       })
-    } catch (error) {
-      if (error instanceof jwt.TokenExpiredError) {
+    } catch (err) {
+      if (err instanceof jwt.TokenExpiredError) {
         const payload = jwt.verify(token, JWT_KEY, {ignoreExpiration: true});
         username = payload.username
 

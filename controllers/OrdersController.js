@@ -17,7 +17,7 @@ class OrdersController {
       };
     }
 
-    const order = this.ordersData.getOrder(id);
+    const order = await this.ordersData.getOrder({id});
 
     if (!order) {
       return {

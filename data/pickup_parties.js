@@ -2,19 +2,18 @@
 
 const knex = require('../knex.js');
 
-function getPickupParty(id) {
-  return knex.raw(`
-    SELECT *
-    FROM pickup_parties,
-    (
-      SELECT COUNT(id) AS reservations
-      FROM reservations
-      WHERE "pickupPartiesId" = ?
-      AND status IN (1, 2)
+function getPickupParty({id}) {
+  return knex.select('*')
+    .select(
+      knex.count('id')
+        .from('reservations')
+        .where('pickupPartiesId', id)
+        .whereIn('status', [1, 2])
+        .as('reservations')
     )
-    WHERE id = ?
-    LIMIT 1
-  `, id);
+    .from('pickup_parties')
+    .where({id})
+    .first()
 }
 
 module.exports = {
