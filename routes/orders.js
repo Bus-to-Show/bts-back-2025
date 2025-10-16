@@ -330,7 +330,7 @@ router.post('/charge', async (req, res) => {
 
     const charge = await stripe.charges.create({
       amount: req.body.amount,
-      description: req.body.metadata.eventId,
+      description: req.body.eventId,
       currency: 'usd',
       customer: customer.id,
       metadata: req.body.metadata,
