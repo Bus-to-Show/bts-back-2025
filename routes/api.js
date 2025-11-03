@@ -65,7 +65,8 @@ router.get('/secure', async (req, res) => {
     const username = decoded.username
     pool.connect(async (err, client, release) => {
       if (err) {
-        return console.error('Error acquiring client', err.stack)
+        console.error('Error acquiring client', err.stack)
+        return res.status(500).send('Internal server error');
       }
       client.query(
         'SELECT  id, "firstName", "lastName", email, "hshPwd", "isWaiverSigned", "isStaff", "isDriver", "isAdmin", "isDeactivated", "preferredLocation" FROM users WHERE email = $1',

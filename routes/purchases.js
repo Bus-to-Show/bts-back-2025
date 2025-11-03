@@ -12,46 +12,45 @@ const pool = new Pool(pgconfig)
 
 //List (get all of the resource)
 router.get('/', (req, res, next) => {
-    pool.connect((err, client, release) => {
-        if (err) {
-          return console.error('Error acquiring client', err.stack)
-        }
-        client.query(`
+  pool.connect((err, client, release) => {
+    if (err) {
+      return console.error('Error acquiring client', err.stack)
+    }
+    client.query(`
         `, (err, result) => {
-          release()
-          if (err) {
-            return console.error('Error executing query', err.stack)
-          }
-          res.status(200).json(result.rows)
-        })
-      })
-
+      release()
+      if (err) {
+        return console.error('Error executing query', err.stack)
+      }
+      res.status(200).json(result.rows)
+    })
   })
+})
 
 
 //Read (get one of the resource)
 // Get One
-router.get('/:id', function(req, res, next){
-knex('purchases')
+router.get('/:id', function (req, res, next) {
+  knex('purchases')
     .select('id', 'date', 'doors_time', 'startTime', 'venue', 'headliner', 'support1', 'support2', 'support3', 'headlinerImgLink', 'headlinerBio', 'meetsCriteria', 'isDenied', 'external')
     .where('id', req.params.id)
-.then((data) => {
-    res.status(200).json(data[0])
-})
+    .then((data) => {
+      res.status(200).json(data[0])
+    })
 })
 
 //Create (create one of the resource)
-router.post('/', function(req, res, next){
+router.post('/', function (req, res, next) {
   console.log('purchases req.body ==>>==>> ', req.body);
   const card = req.body.token.card;
   const product = req.body.token.product
-	const product_id = product.id
-	const purchased_by_first = product.name
-	const purchased_by_last = product.name
-	const purchased_for_email = req.body.token.email
-	const purchased_by_email = req.body.token.email
-	const billing_zip = card.address_zip
-  const billing_address=`${card.address_line1} ${card.address_city}, ${card.address_state} ${card.address_zip}`
+  const product_id = product.id
+  const purchased_by_first = product.name
+  const purchased_by_last = product.name
+  const purchased_for_email = req.body.token.email
+  const purchased_by_email = req.body.token.email
+  const billing_zip = card.address_zip
+  const billing_address = `${card.address_line1} ${card.address_city}, ${card.address_state} ${card.address_zip}`
 
   const values = [product_id, purchased_by_first, purchased_by_last, purchased_for_email, purchased_by_email, billing_zip, billing_address];
 
@@ -99,10 +98,10 @@ router.post('/', function(req, res, next){
   //   }
   // }
   pool.connect((err, client, release) => {
-      if (err) {
-        return console.error('Error acquiring client', err.stack)
-      }
-      client.query(`
+    if (err) {
+      return console.error('Error acquiring client', err.stack)
+    }
+    client.query(`
       INSERT INTO purchases (product_id, purchased_by_first, purchased_by_last, purchased_for_email, purchased_by_email, billing_zip, billing_address) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`, values
       , (err, result) => {
         release()
@@ -111,33 +110,33 @@ router.post('/', function(req, res, next){
         }
         console.log('result.rows ==>> ==>> ', result.rows);
         // {
-          //   id: 8,
-          //   product_id: 1,
-          //   purchased_on: 2023-03-19T08:55:28.512Z,
-          //   purchased_by_first: 'Season Pass',
-          //   purchased_by_last: 'Season Pass',
-          //   purchased_for_email: 'dustin@undefinedindustries.com',
-          //   purchased_by_email: 'dustin@undefinedindustries.com',
-          //   billing_zip: '81240',
-          //   billing_address: 'PO BOX 909 PENROSE, CO 81240'
-          // }
-          if(result && result.rows){
+        //   id: 8,
+        //   product_id: 1,
+        //   purchased_on: 2023-03-19T08:55:28.512Z,
+        //   purchased_by_first: 'Season Pass',
+        //   purchased_by_last: 'Season Pass',
+        //   purchased_for_email: 'dustin@undefinedindustries.com',
+        //   purchased_by_email: 'dustin@undefinedindustries.com',
+        //   billing_zip: '81240',
+        //   billing_address: 'PO BOX 909 PENROSE, CO 81240'
+        // }
+        if (result && result.rows) {
 
         }
 
         res.status(200).json(result.rows)
       })
-    })
+  })
 })
 
-router.patch('/:id', function(req, res, next){
+router.patch('/:id', function (req, res, next) {
   knex('purchases')
     .where('id', req.params.id)
     .update(req.body)
     .returning(['id', 'date', 'doors_time', 'startTime', 'venue', 'headliner', 'support1', 'support2', 'support3', 'headlinerImgLink', 'headlinerBio', 'meetsCriteria', 'isDenied', 'external'])
-  .then((data) => {
-    res.status(200).json(data[0])
-  })
+    .then((data) => {
+      res.status(200).json(data[0])
+    })
 })
 
 //Delete (delete one of the resource)

@@ -34,7 +34,7 @@ class ReservationsController {
       };
     }
 
-    const pickupParty = await this.pickupPartiesData.getPickupParty({id: pickupPartiesId});
+    const pickupParty = await this.pickupPartiesData.getPickupParty(pickupPartiesId);
 
     if (!pickupParty) {
       return {

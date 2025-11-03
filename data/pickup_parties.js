@@ -2,7 +2,7 @@
 
 const knex = require('../knex.js');
 
-function getPickupParty({id}) {
+function getPickupParty(id) {
   return knex.select('*')
     .select(
       knex.count('id')

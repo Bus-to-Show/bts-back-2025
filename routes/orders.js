@@ -311,7 +311,7 @@ router.post('/charge', async (req, res) => {
     // check capacity of pickup party before charging customer
     const {pickupPartyId, ticketQuantity} = req.body.metadata;
 
-    const party = await getPickupParty({id: pickupPartyId});
+    const party = await getPickupParty(pickupPartyId);
 
     if (!party) {
       return res.status(404).json({message: 'That pickup was not found. Please try again.'});
