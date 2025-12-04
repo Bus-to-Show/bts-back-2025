@@ -4,7 +4,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const JWT_KEY = process.env.JWT_KEY
-const parse = require("pg-connection-string").parse;
+const { parse } = require("pg-connection-string");
 const pgconfig = parse(process.env.DATABASE_URL);
 
 const Pool = require('pg').Pool

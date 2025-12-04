@@ -4,7 +4,7 @@ const express = require('express');
 const router = express.Router();
 const knex = require('../knex.js')
 // Parse the environment variable into an object
-const parse = require("pg-connection-string").parse;
+const { parse } = require("pg-connection-string");
 const pgconfig = parse(process.env.DATABASE_URL);
 
 const Pool = require('pg').Pool
