@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "engines": {
-    "node": "16.x"
+    "node": "22.x"
   },
   "scripts": {
     "start": "node app.js",
@@ -11,20 +11,24 @@
     "test": "node --test"
   },
   "dependencies": {
-    "bcrypt": "^5.1.0",
+    "bcrypt": "^5.1.1",
     "convert-time": "^0.3.0",
-    "cookie-parser": "~1.4.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "dotenv": "^6.2.0",
-    "express": "~4.16.0",
-    "helmet": "^3.21.1",
-    "jsonwebtoken": "^8.5.1",
-    "knex": "^0.21.1",
-    "morgan": "~1.9.0",
-    "node-cron": "^2.0.3",
-    "nodemailer": "^6.7.3",
-    "nodemon": "^1.19.4",
-    "pg": "^8.0.3",
-    "stripe": "^6.36.0"
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "knex": "^3.1.0",
+    "morgan": "^1.10.0",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^7.0.11",
+    "nodemon": "^3.1.11",
+    "pg": "^8.13.1",
+    "stripe": "^17.5.0"
+  },
+  "devDependencies": {
+    "fast-check": "^3.23.1",
+    "supertest": "^7.0.0"
   }
 }
