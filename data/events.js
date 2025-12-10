@@ -1,29 +1,28 @@
-'use strict';
+"use strict";
 
-const knex = require('../knex.js');
+const knex = require("../knex.js");
 
 const fields = [
-  'id',
-  'date',
-  'startTime',
-  'venue',
-  'headliner',
-  'support1',
-  'support2',
-  'support3',
-  'headlinerImgLink',
-  'headlinerBio',
-  'meetsCriteria',
-  'isDenied',
-  'external',
-  'doors_time',
+  "id",
+  "date",
+  "startTime",
+  "venue",
+  "headliner",
+  "support1",
+  "support2",
+  "support3",
+  "headlinerImgLink",
+  "headlinerBio",
+  "meetsCriteria",
+  "isDenied",
+  "external",
+  "doors_time",
 ];
 
-function getEvents({sum, startDate, endDate, sort}) {
-  const queryBuilder = knex('events')
-    .select(fields);
+function getEvents({ sum, startDate, endDate, sort }) {
+  const queryBuilder = knex("events").select(fields);
 
-  if (sum.includes('capacity')) {
+  if (sum.includes("capacity")) {
     queryBuilder.select(
       knex.raw(`
         COALESCE(
@@ -38,7 +37,7 @@ function getEvents({sum, startDate, endDate, sort}) {
     );
   }
 
-  if (sum.includes('reservations')) {
+  if (sum.includes("reservations")) {
     queryBuilder.select(
       knex.raw(`
         COALESCE(
@@ -59,25 +58,22 @@ function getEvents({sum, startDate, endDate, sort}) {
   }
 
   if (startDate) {
-    queryBuilder.whereRaw('date::date >= ?', startDate);
+    queryBuilder.whereRaw("date::date >= ?", startDate);
   }
 
   if (endDate) {
-    queryBuilder.whereRaw('date::date <= ?', endDate);
+    queryBuilder.whereRaw("date::date <= ?", endDate);
   }
 
-  if (sort.includes('date')) {
-    queryBuilder.orderByRaw('date::date');
+  if (sort.includes("date")) {
+    queryBuilder.orderByRaw("date::date").orderBy("startTime", "asc");
   }
 
   return queryBuilder;
 }
 
-function getEvent({id}) {
-  return knex('events')
-    .select(fields)
-    .where('id', id)
-    .first();
+function getEvent({ id }) {
+  return knex("events").select(fields).where("id", id).first();
 }
 
 async function createEvent({
@@ -95,7 +91,7 @@ async function createEvent({
   external,
   doors_time,
 }) {
-  const result = await knex('events')
+  const result = await knex("events")
     .insert({
       date,
       startTime,
@@ -132,8 +128,8 @@ async function updateEvent({
   external,
   doors_time,
 }) {
-  const result = await knex('events')
-    .where('id', id)
+  const result = await knex("events")
+    .where("id", id)
     .update({
       date,
       startTime,
@@ -154,11 +150,8 @@ async function updateEvent({
   return result[0];
 }
 
-async function deleteEvent({id}) {
-  const result = await knex('events')
-    .where('id', id)
-    .del()
-    .returning(fields);
+async function deleteEvent({ id }) {
+  const result = await knex("events").where("id", id).del().returning(fields);
 
   return result[0];
 }
