@@ -1,4 +1,4 @@
-require('dotenv').load();
+require('dotenv').config();
 
 var express = require('express');
 var path = require('path');
@@ -30,7 +30,8 @@ var whitelist = process.env.ORIGIN_URL.split(' ')
 
 var corsOptions = {
   origin: function (origin, callback) {
-    if (whitelist.indexOf(origin) !== -1) {
+    // Allow requests with no origin (like mobile apps, Postman, curl, etc.)
+    if (!origin || whitelist.indexOf(origin) !== -1) {
       callback(null, true)
     } else {
       callback(new Error('Not allowed by CORS'))
@@ -69,33 +70,46 @@ app.use(`/reservations`, reservationsRouter);
 app.use('/products', productsRouter);
 app.use('/purchases', purchasesRouter);
 
-app.use((req, res) => {
-  res.status(404).json({ message: 'That page does not exist.' });
-});
+// Import new error handling middleware
+const { errorHandler, notFoundHandler } = require('./src/middleware/error.middleware.js');
 
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'An unknown error occurred.' });
-});
+// 404 handler - must be after all routes
+app.use(notFoundHandler);
 
-const port = process.env.PORT || 3000;
+// Error handler - must be last
+app.use(errorHandler);
 
-app.listen(port, () => {
-  console.log(`Listening on port ${port}`);
-});
+// Old error handlers (commented out for reference)
+// app.use((req, res) => {
+//   res.status(404).json({ message: 'That page does not exist.' });
+// });
+//
+// app.use((err, req, res, next) => {
+//   console.error(err.stack);
+//   res.status(500).json({ message: 'An unknown error occurred.' });
+// });
 
-cron.schedule('*/5 * * * *', () => {
-  if (process.env.NODE_ENV == 'production'){
-    eventDataHandler.sweepInCarts()
-  }
-})
+// Only start server if this file is run directly (not imported for testing)
+if (require.main === module) {
+  const port = process.env.PORT || 3000;
 
-cron.schedule('15 17 * * *', () => {
-  if (process.env.NODE_ENV == 'production'){
-    console.log('reminder email cron! ')
-    reminderEmails.sendReminders()
-  }
-})
+  app.listen(port, () => {
+    console.log(`Listening on port ${port}`);
+  });
+
+  cron.schedule('*/5 * * * *', () => {
+    if (process.env.NODE_ENV == 'production'){
+      eventDataHandler.sweepInCarts()
+    }
+  })
+
+  cron.schedule('15 17 * * *', () => {
+    if (process.env.NODE_ENV == 'production'){
+      console.log('reminder email cron! ')
+      reminderEmails.sendReminders()
+    }
+  })
+}
 
 module.exports = app;
 
